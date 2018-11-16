@@ -1,11 +1,21 @@
 const express = require('express');
 const Promise = require('bluebird');
 const sqlite = require('sqlite');
+const config = require('./config');
 const ejs = require('ejs');
+const session = require('express-session');
+
+if (!config.session.secret) {
+    throw new Error('You must fill in the session secret in the config')
+}
 
 const app = express();
 
 app.set('view engine', 'ejs');
+app.use(session(Object.assign({
+    resave: false,
+    saveUninitialized: true,
+}, config.session)));
 
 const port = process.env.PORT || 3000;
 const dbPromise = sqlite.open('./db.sqlite', { cached: true, Promise }).then(db => db.migrate());

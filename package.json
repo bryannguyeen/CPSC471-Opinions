@@ -20,6 +20,7 @@
     "bluebird": "^3.5.3",
     "ejs": "^2.6.1",
     "express": "^4.16.4",
+    "express-session": "^1.15.6",
     "sql-template-strings": "^2.2.2",
     "sqlite": "^3.0.0"
   }
