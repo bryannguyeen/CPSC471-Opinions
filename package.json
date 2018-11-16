@@ -1,0 +1,23 @@
+{
+  "name": "opinions-cpsc471",
+  "version": "0.0.1",
+  "description": "Pseudo-Anonymous Discussion Boards",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bryannguyeen/CPSC471-Opinions.git"
+  },
+  "author": "Spencer Maslen, Bryan Nguyen, Stepan F-B",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/bryannguyeen/CPSC471-Opinions/issues"
+  },
+  "homepage": "https://github.com/bryannguyeen/CPSC471-Opinions#readme",
+  "dependencies": {
+    "ejs": "^2.6.1",
+    "expressjs": "^1.0.1"
+  }
+}
