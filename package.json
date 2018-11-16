@@ -17,8 +17,9 @@
   },
   "homepage": "https://github.com/bryannguyeen/CPSC471-Opinions#readme",
   "dependencies": {
+    "bluebird": "^3.5.3",
     "ejs": "^2.6.1",
-    "expressjs": "^1.0.1",
+    "express": "^4.16.4",
     "sql-template-strings": "^2.2.2",
     "sqlite": "^3.0.0"
   }
