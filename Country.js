@@ -12,6 +12,9 @@ class Country
 
   set country(countryVal)
   {
-    this.country = countryVal;
+    this._country = countryVal;
   }
 }
+
+
+module.exports.Country = Country;

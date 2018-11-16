@@ -10,41 +10,43 @@ class Comment
 
   get body()
   {
-    return this.body;
+    return this._body;
   }
 
   get NSFW()
   {
-    return this.NSFW;
+    return this._NSFW;
   }
 
   get timeStamp()
   {
-    return this.timeStamp;
+    return this._timeStamp;
   }
 
   get commentID()
   {
-    return this.commentID;
+    return this._commentID;
   }
 
   set body(bodyVal)
   {
-    this.body = bodyVal;
+    this._body = bodyVal;
   }
 
   set NSFW(NSFWbool)
   {
-    this.NSFW = NSFWbool;
+    this._NSFW = NSFWbool;
   }
 
   set timeStamp(timeStampVal)
   {
-    this.timeStamp = timeStampVal;
+    this._timeStamp = timeStampVal;
   }
 
   set commentID(commentIDVal)
   {
-    this.commentID = commentIDVal;
+    this._commentID = commentIDVal;
   }
 }
+
+module.exports.Comment = Comment;

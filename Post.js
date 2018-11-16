@@ -54,42 +54,42 @@ class Post
 
   set score(scoreVal)
   {
-    this.score = scoreVal;
+    this._score = scoreVal;
   }
 
   set numLikes(numLikesVal)
   {
-    this.numLikes = numLikesVal;
+    this._numLikes = numLikesVal;
   }
 
   set title(titleVal)
   {
-    this.title = titleVal;
+    this._title = titleVal;
   }
 
   set postDate(postDateVal)
   {
-    this.postDate = postDateVal;
+    this._postDate = postDateVal;
   }
 
   set postID(postIDVal)
   {
-    this.postID = postIDVal
+    this._postID = postIDVal
   }
 
   set bodyText(bodyTextVal)
   {
-    this.bodyText = bodyTextVal;
+    this._bodyText = bodyTextVal;
   }
 
   set NotSafeForWorkFlag(NotSafeForWorkFlagBool)
   {
-    this.NotSafeForWorkFlag = NotSafeForWorkFlagBool;
+    this._NotSafeForWorkFlag = NotSafeForWorkFlagBool;
   }
 
   set numDislikes(numDislikesVal)
   {
-    this.numDislikes = numDislikesVal;
+    this._numDislikes = numDislikesVal;
   }
 
 

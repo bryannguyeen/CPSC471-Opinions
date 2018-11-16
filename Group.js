@@ -13,7 +13,7 @@ class Group
 
   set groupName(groupNameVal)
   {
-    this.groupName = groupNameVal;
+    this._groupName = groupNameVal;
   }
 
   get description()
@@ -23,8 +23,10 @@ class Group
 
   set description(descriptionVal)
   {
-    this.description = descriptionVal;
+    this._description = descriptionVal;
   }
 
 
 }
+
+module.exports.Group = Group;

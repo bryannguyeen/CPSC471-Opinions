@@ -42,23 +42,6 @@ class User
 
 }
 
-class Administrator extends User
-{
-  constructor()
-  {
-    this.numGroupsAdmin = 0;
-  }
-
-  get numGroupsAdmin()
-  {
-    return this.numGroupsAdmin;
-  }
-
-  set numGroupsAdmin(numGroupsAdminVal)
-  {
-    this.numGroupsAdmin = numGroupsAdminVal;
-  }
-}
 
 class Moderator extends User
 {
@@ -77,3 +60,26 @@ class Moderator extends User
     this.numGroupsModerate = numGroupsModerateVal;
   }
 }
+
+class Administrator extends Moderator
+{
+  constructor()
+  {
+    this.numGroupsAdmin = 0;
+  }
+
+  get numGroupsAdmin()
+  {
+    return this.numGroupsAdmin;
+  }
+
+  set numGroupsAdmin(numGroupsAdminVal)
+  {
+    this.numGroupsAdmin = numGroupsAdminVal;
+  }
+}
+
+
+module.exports.User = User;
+module.exports.Administrator = Administrator;
+module.exports.Moderator = Moderator;
