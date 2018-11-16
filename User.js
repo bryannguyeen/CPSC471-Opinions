@@ -7,6 +7,7 @@ class User
     this.username = "";
     this.numSubscriptions = 0;
     this.prestigeScore = 0;
+    this.password = "";
   }
 
   get username()
@@ -26,18 +27,30 @@ class User
 
   set username(usernameVal)
   {
-    this.username = usernameVal;
+    this._username = usernameVal;
   }
 
-  setNumSupscriptions(numSubscriptionsVal)
+  set numSupscriptions(numSubscriptionsVal)
   {
-    this.numSubscriptions = numSubscriptionsVal;
+    this._numSubscriptions = numSubscriptionsVal;
   }
 
-  setPrestigeScore(prestigeScoreVal)
+  set prestigeScore(prestigeScoreVal)
   {
-    this.prestigeScore = prestigeScoreVal;
+    this._prestigeScore = prestigeScoreVal;
   }
+
+  get password()
+  {
+    return this.password;
+  }
+
+  set password(passwordVal)
+  {
+    this._password = passwordVal;
+  }
+
+
 
 
 }
@@ -57,7 +70,7 @@ class Moderator extends User
 
   set numGroupsModerate(numGroupsModerateVal)
   {
-    this.numGroupsModerate = numGroupsModerateVal;
+    this._numGroupsModerate = numGroupsModerateVal;
   }
 }
 
@@ -75,7 +88,7 @@ class Administrator extends Moderator
 
   set numGroupsAdmin(numGroupsAdminVal)
   {
-    this.numGroupsAdmin = numGroupsAdminVal;
+    this._numGroupsAdmin = numGroupsAdminVal;
   }
 }
 

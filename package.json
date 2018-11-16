@@ -1,0 +1,24 @@
+{
+  "name": "CPSC471-Opinions",
+  "version": "1.0.0",
+  "description": "CPSC 471 OPINIONS",
+  "main": "Start.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bryannguyeen/CPSC471-Opinions.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/bryannguyeen/CPSC471-Opinions/issues"
+  },
+  "homepage": "https://github.com/bryannguyeen/CPSC471-Opinions#readme",
+  "dependencies": {
+    "bootstrap": "^4.1.3",
+    "mysql": "^2.16.0"
+  }
+}
