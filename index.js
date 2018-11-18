@@ -14,9 +14,7 @@ if (!config.session.secret) {
 }
 
 const app = express();
-
 app.use(bodyParser.urlencoded({extended: false}));
-
 app.set('view engine', 'ejs');
 app.use(session(Object.assign({
     resave: false,
@@ -28,13 +26,13 @@ const dbPromise = sqlite.open('./db.sqlite', { cached: true, Promise }).then(db 
 
 
 app.get('/', async (req, res, next) => {
-    res.render('pages/index');
-    db.all('SELECT * FROM User;', (err, rows) => {
-        console.log(rows);
-    });
-    db.all('SELECT * FROM UserSettings;', (err, rows) => {
-        console.log(rows);
-    });
+    if (!req.session.username) {
+        res.redirect('/login');
+        res.end();
+    }
+    else {
+        res.render('pages/index', {username: req.session.username});    // send username for the header to display name
+    }
 
     /*
     try {
@@ -50,6 +48,14 @@ app.get('/', async (req, res, next) => {
 });
 
 app.get("/login", async (req, res) => {
+    // Lists all the existing users in the database and their settings
+    db.all('SELECT * FROM User;', (err, rows) => {
+        console.log(rows);
+    });
+    db.all('SELECT * FROM UserSettings;', (err, rows) => {
+        console.log(rows);
+    });
+
     var errorMessage = "";
     var defaultUsername = "";
     if (req.query.invalid) {
@@ -65,10 +71,12 @@ app.post("/authentication", async (req, res) => {
     console.log("logging in...");
     const username = req.body.username;
     const password = req.body.password;
-    const query = 'SELECT COUNT (*) AS count FROM User WHERE LOWER(Username) = LOWER(\'' + username + '\') AND Password = \'' + password + '\'';
+    // we want the username to be case insensitive
+    const query = 'SELECT * FROM User WHERE LOWER(Username) = LOWER(\'' + username + '\') AND Password = \'' + password + '\'';
     db.all(query, (err, rows) => {
-        if (rows[0].count) { // count is 1 if such a username/password pair exists, 0 otherwise
-            console.log("Success!");
+        if (rows.length) { // length is 1 if such a username/password pair exists, 0 otherwise
+            console.log("Success! ");
+            req.session.username = rows[0].Username;
             res.redirect('/');
         }
         else {
@@ -77,6 +85,13 @@ app.post("/authentication", async (req, res) => {
         }
         res.end();
     });
+})
+
+app.get("/logout", async (req, res) => {
+    req.session.destroy((err) => {
+        if (err) throw err;
+        res.redirect('/login');
+    })
 })
 
 app.get("/signup", async (req, res) => {
@@ -178,8 +193,11 @@ app.post("/accountcreation", (req, res) => {
         else {
             console.log("Username is free!");
             const query2 = 'INSERT INTO UserSettings VALUES(\'' + username + '\', \'true\')';
+            // Also make the UserSetting for the associated User
             db.run(query2, (err) => {
                 if (err) throw err;
+                console.log("Account creation successful!");
+                req.session.username = username;
                 res.redirect("/");
                 res.end();
             })
