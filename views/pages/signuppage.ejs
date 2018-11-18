@@ -6,7 +6,7 @@
     <body class="container">
 
     <header>
-        <% include ../partials/header %>
+        
     </header>
     <main>
         <div class="jumbotron">
@@ -15,11 +15,13 @@
             </form>
             <br/>
             <center>
-                <h1><%= message %></h1>
+                <% if (message) { %>
+                    <h1><%= message %></h1>
+                <% } %>
                 <form action="/accountcreation" method="POST">
-                    <input placeholder="Username" name="create_username"/><br/>
-                    <input placeholder="Password" type="password" name="create_password"/><br/>
-                    <input placeholder="Confirm Password" type="password" name="confirm_password"/><br/>
+                    <input placeholder="Username" name="create_username" value=<%= name %>><br/>
+                    <input placeholder="Password" type="password" name="create_password"><br/>
+                    <input placeholder="Confirm Password" type="password" name="confirm_password"><br/>
                     <button>Create Account</button>
                 </form>
             </center>

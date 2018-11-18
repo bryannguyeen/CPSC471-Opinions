@@ -1,10 +1,13 @@
 const express = require('express');
 const Promise = require('bluebird');
 const sqlite = require('sqlite');
+const sqlite3 = require('sqlite3');
 const config = require('./config');
 const ejs = require('ejs');
 const session = require('express-session');
 const bodyParser = require('body-parser');
+
+const db = new sqlite3.Database('db.sqlite');
 
 if (!config.session.secret) {
     throw new Error('You must fill in the session secret in the config')
@@ -26,6 +29,12 @@ const dbPromise = sqlite.open('./db.sqlite', { cached: true, Promise }).then(db 
 
 app.get('/', async (req, res, next) => {
     res.render('pages/index');
+    db.all('SELECT * FROM User;', (err, rows) => {
+        console.log(rows);
+    });
+    db.all('SELECT * FROM UserSettings;', (err, rows) => {
+        console.log(rows);
+    });
 
     /*
     try {
@@ -41,21 +50,60 @@ app.get('/', async (req, res, next) => {
 });
 
 app.get("/login", async (req, res) => {
-    res.render('pages/loginpage');
+    var errorMessage = "";
+    var defaultUsername = "";
+    if (req.query.invalid) {
+        errorMessage = "Incorrect username or password";
+    }
+    if (req.query.name) {
+        defaultUsername = req.query.name;
+    }
+    res.render('pages/loginpage', {message: errorMessage, name: defaultUsername});
+})
+
+app.post("/authentication", async (req, res) => {
+    console.log("logging in...");
+    const username = req.body.username;
+    const password = req.body.password;
+    const query = 'SELECT COUNT (*) AS count FROM User WHERE LOWER(Username) = LOWER(\'' + username + '\') AND Password = \'' + password + '\'';
+    db.all(query, (err, rows) => {
+        if (rows[0].count) { // count is 1 if such a username/password pair exists, 0 otherwise
+            console.log("Success!");
+            res.redirect('/');
+        }
+        else {
+            console.log("Wrong username/password!");
+            res.redirect('/login?invalid=true&name=' + username);
+        }
+        res.end();
+    });
 })
 
 app.get("/signup", async (req, res) => {
     var errorMessage = "";
-    if (String(req.query.invalid) == "nomatch") {
+    var defaultUsername = "";
+    if (req.query.invalid == "nomatch") {
         errorMessage = "Passwords do not match";
     }
     if (req.query.invalid == "emptyusername") {
         errorMessage = "Username can't be empty";
     }
+    if (req.query.invalid == "longusername") {
+        errorMessage = "Username cannot exceed 25 characters";
+    }
     if (req.query.invalid == "tooshort") {
         errorMessage = "Password must be at least 8 characters";
     }
-    res.render('pages/signuppage', {message: errorMessage});
+    if (req.query.invalid == "toolong") {
+        errorMessage = "Password cannot exceed 25 characters";
+    }
+    if (req.query.invalid == "taken") {
+        errorMessage = "Username is already taken";
+    }
+    if (req.query.name) {
+        defaultUsername = req.query.name;
+    }
+    res.render('pages/signuppage', {message: errorMessage, name: defaultUsername});
 })
 
 app.post("/accountcreation", (req, res) => {
@@ -73,10 +121,19 @@ app.post("/accountcreation", (req, res) => {
     // username is empty
     if (String(username).length < 1) {
         console.log("Username is empty!");
-        res.redirect('/signup?invalid=emptyusername');
+        res.redirect('/signup?invalid=emptyusername&name=' + username);
         return;
     } else {
         console.log("Username is not empty!")
+    }
+
+    // username is too long
+    if (String(username).length > 25) {
+        console.log("Username is too long!");
+        res.redirect('/signup?invalid=longusername&name=' + username);
+        return;
+    } else {
+        console.log("Username is not too long!")
     }
 
     // username contains an invalid character
@@ -85,7 +142,7 @@ app.post("/accountcreation", (req, res) => {
     // passwords don't match
     if (password != confirmPassword) {
         console.log("Passwords don't match!");
-        res.redirect('/signup?invalid=nomatch');
+        res.redirect('/signup?invalid=nomatch&name=' + username);
         return;
     }
     else {
@@ -95,15 +152,41 @@ app.post("/accountcreation", (req, res) => {
     // password is too short
     if (String(password).length < 8) {
         console.log("Password is too short!");
-        res.redirect('/signup?invalid=tooshort');
+        res.redirect('/signup?invalid=tooshort&name=' + username);
         return;
     } else {
-        console.log("Password is a good length!")
+        console.log("Password is not too short!")
     }
 
-    // if they pass all conditions, log the user in
-    res.redirect('/');
-    res.end();
+    // password is too long
+    if (String(password).length > 25) {
+        console.log("Password is too long!");
+        res.redirect('/signup?invalid=toolong&name=' + username);
+        return;
+    } else {
+        console.log("Password is not too long!")
+    }
+
+    // if they pass all conditions, create the account and log the user in
+    const query1 = 'INSERT INTO User VALUES(\'' + username + '\', \'' + password + '\')';
+    db.run(query1, (err) => {
+        if (err && String(err.message) == 'SQLITE_CONSTRAINT: UNIQUE constraint failed: user.Username') {
+            console.log("Username taken!");
+            res.redirect('/signup?invalid=taken&name=' + username);
+            res.end();
+        }
+        else {
+            console.log("Username is free!");
+            const query2 = 'INSERT INTO UserSettings VALUES(\'' + username + '\', \'true\')';
+            db.run(query2, (err) => {
+                if (err) throw err;
+                res.redirect("/");
+                res.end();
+            })
+        }
+    });
+
+    //res.end();
 })
 
 app.listen(port);

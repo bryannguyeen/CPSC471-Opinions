@@ -6,7 +6,7 @@
     <body class="container">
 
     <header>
-        <% include ../partials/header %>
+        
     </header>
     <main>
         <div class="jumbotron">
@@ -15,9 +15,12 @@
             </form>
             <br/>
             <center>
-                <form>
-                    <input placeholder="Username"/><br/>
-                    <input placeholder="Password" type="password"/><br/>
+                <% if (message) { %>
+                    <h1><%= message %></h1>
+                <% } %>
+                <form action="/authentication" method="POST">
+                    <input placeholder="Username" name="username" value=<%= name %>><br/>
+                    <input placeholder="Password" type="password" name="password"><br/>
                     <button>Log In</button>
                 </form>
             </center>
