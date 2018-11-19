@@ -47,6 +47,43 @@ app.get('/', async (req, res, next) => {
     } */
 });
 
+app.get('/settings', async (req, res, next) => {
+    if (!req.session.username) {
+        res.redirect('/login');
+        res.end();
+    }
+    else {
+        // get the existing usersettings, which is just the nsfw flag
+        const query = 'SELECT HideNSFW FROM UserSettings WHERE Username = \'' + req.session.username + '\'';
+        db.all(query, (err, rows) => {
+            res.render('pages/settings', {username: req.session.username, flag: rows[0].HideNSFW});
+        });
+    }
+});
+
+app.post("/savesettings", async (req, res) => {
+    const hidensfwNew = Boolean(req.body.hideNSFW);
+
+    const query = 'UPDATE UserSettings SET HideNSFW = ' + hidensfwNew + ' WHERE Username = \''+ req.session.username + '\'';
+    db.all(query, (err) => {
+        if (err) throw err;
+        res.redirect('/');
+        res.end();
+    });
+})
+
+app.post("/deleteaccount", async (req, res) => {
+    const query = 'DELETE FROM User WHERE Username = \''+ req.session.username + '\'';
+    db.all(query, (err) => {
+        if (err) throw err;
+        req.session.destroy((err) => {
+            if (err) throw err;
+            res.redirect('/signup');
+            res.end();
+        })
+    });
+})
+
 app.get("/login", async (req, res) => {
     // Lists all the existing users in the database and their settings
     db.all('SELECT * FROM User;', (err, rows) => {
@@ -91,6 +128,7 @@ app.get("/logout", async (req, res) => {
     req.session.destroy((err) => {
         if (err) throw err;
         res.redirect('/login');
+        res.end();
     })
 })
 
@@ -192,7 +230,7 @@ app.post("/accountcreation", (req, res) => {
         }
         else {
             console.log("Username is free!");
-            const query2 = 'INSERT INTO UserSettings VALUES(\'' + username + '\', \'true\')';
+            const query2 = 'INSERT INTO UserSettings VALUES(\'' + username + '\', \'1\')';
             // Also make the UserSetting for the associated User
             db.run(query2, (err) => {
                 if (err) throw err;

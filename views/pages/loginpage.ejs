@@ -9,6 +9,7 @@
         
     </header>
     <main>
+        <H1>Log In</H1>
         <div class="jumbotron">
             <form action="/signup" align="right">
                 <button>Sign up</button>
@@ -16,7 +17,7 @@
             <br/>
             <center>
                 <% if (message) { %>
-                    <h1><%= message %></h1>
+                    <h2><%= message %></h2>
                 <% } %>
                 <form action="/authentication" method="POST">
                     <input placeholder="Username" name="username" value=<%= name %>><br/>
