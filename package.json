@@ -18,6 +18,7 @@
   "homepage": "https://github.com/bryannguyeen/CPSC471-Opinions#readme",
   "dependencies": {
     "alert-node": "^1.2.2",
+    "bcrypt": "^3.0.2",
     "bluebird": "^3.5.3",
     "body-parser": "^1.18.3",
     "ejs": "^2.6.1",

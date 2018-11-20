@@ -1,6 +1,7 @@
 const SQL = require("sql-template-strings");
 
 const express = require('express');
+const bcrypt = require('bcrypt');
 const Promise = require('bluebird');
 const sqlite = require('sqlite');
 const config = require('./config');
@@ -72,9 +73,9 @@ app.post("/login", async (req, res) => {
     const username = req.body.username;
     const password = req.body.password;
     // we want the username to be case insensitive
-    const user = await db.get(SQL`SELECT * FROM User WHERE LOWER(Username) = LOWER(${username}) AND Password = ${password}`);
+    const user = await db.get(SQL`SELECT * FROM User WHERE LOWER(Username) = LOWER(${username})`);
 
-    if (user) {
+    if (user && await bcrypt.compare(password, user.Password)) {
         // username/password pair exists
         req.session.username = user.Username;
         res.redirect('/');
@@ -119,7 +120,9 @@ app.post("/signup", async (req, res) => {
         return res.render('pages/signup', {message: "Username already taken", name: username});
     }
 
-    await db.run(SQL`INSERT INTO User VALUES(${username}, ${password})`);
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    await db.run(SQL`INSERT INTO User VALUES(${username}, ${hashedPassword})`);
 
     req.session.username = username;
     res.redirect("/");
