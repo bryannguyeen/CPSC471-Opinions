@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <% include ../partials/head %>
+    </head>
+    <body class="container">
+
+    <header>
+        
+    </header>
+    <main>
+        <H1>Sign up</H1>
+        <div class="jumbotron">
+            <form action="/login" align="right">
+                <button>Log In</button>
+            </form>
+            <br/>
+            <center>
+                <% if (locals.message) { %>
+                    <h2><%= message %></h2>
+                <% } %>
+                <form action="/signup" method="POST">
+                    <input placeholder="Username" name="create_username" value=<%= locals.name %>><br/>
+                    <input placeholder="Password" type="password" name="create_password"><br/>
+                    <input placeholder="Confirm Password" type="password" name="confirm_password"><br/>
+                    <button>Create Account</button>
+                </form>
+            </center>
+        </div>
+    </main>
+
+</body>
+</html>

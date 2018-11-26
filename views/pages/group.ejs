@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <% include ../partials/head %>
+</head>
+<body class="container">
+
+<header>
+    <%- include('../partials/header', {user: username}); %>
+</header>
+
+<main>
+    <h1><%= locals.groupinfo.GroupName %></h1>
+    <%= locals.groupinfo.Description %>
+    <div class="jumbotron">
+        the group!
+        <% if (locals.mod) { %>
+            <form action="/deletegroup" method="POST" align="right">
+                <input type="hidden" name="groupname" value=<%= locals.groupinfo.GroupName %>>
+                <button>Delete Group</button>
+            </form>
+        <% } %>
+    </div>
+</main>
+
+</body>
+</html>

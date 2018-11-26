@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <% include ../partials/head %>
+</head>
+<body class="container">
+
+<header>
+    <%- include('../partials/header', {user: username}); %>
+</header>
+
+<main>
+    <H1>Settings</H1>
+    <div class="jumbotron">
+        <form action="/settings" method="POST">
+            <h4><label><input type="checkbox" name="hideNSFW" <% if (flag) { %> checked <% } %>> Hide NSFW Content</h4></label><br>
+            <button>Save</button>
+        </form>
+
+        <form action="/deleteaccount" method="POST" align="right">
+            <button>Delete account</button>
+        </form>
+    </div>
+</main>
+
+</body>
+</html>
