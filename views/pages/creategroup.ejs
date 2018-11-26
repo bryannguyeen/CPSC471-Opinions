@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <% include ../partials/head %>
+</head>
+<body class="container">
+
+<header>
+    <%- include('../partials/header', {user: username}); %>
+</header>
+
+<main>
+    <div class="jumbotron">
+        <% if (locals.message) { %>
+            <h2><%= message %></h2>
+        <% } %>
+        <form action="/creategroup" method="POST">
+            <h3><input placeholder="Name" name="create_groupname" value=<%= locals.name %>></h3>
+            <textarea rows="4" cols="50" placeholder="Description (Max 5000 Characters)" name="create_description"></textarea><br/>
+            <button>Create Group</button>
+        </form>
+    </div>
+</main>
+
+</body>
+</html>

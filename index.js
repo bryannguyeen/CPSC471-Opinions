@@ -36,6 +36,20 @@ async function main() {
     db = await sqlite.open('./db.sqlite', { cached: true, Promise }).then(db => db.migrate());
     app.listen(port);
 
+    //await db.run(SQL`DELETE FROM \`Group\``);
+    //await db.run(SQL`DELETE FROM Moderator`);
+    //await db.run(SQL`DELETE FROM Moderates`);
+
+    // Delete whenever
+    /*
+    const mods = await db.all(SQL`SELECT * FROM Moderator`);
+    const groups = await db.all(SQL`SELECT * FROM \`Group\``);
+    const moderates = await db.all(SQL`SELECT * FROM Moderates`);
+    console.log(mods);
+    console.log(groups);
+    console.log(moderates);
+    */
+
     console.log(`Listening on port ${port}: http://localhost:${port}`);
 }
 
@@ -58,7 +72,12 @@ app.post("/settings", isAuthenticated, async (req, res) => {
 });
 
 app.post("/deleteaccount", isAuthenticated, async (req, res) => {
+    // make sure mods can't delete account
+
+
     await db.run(SQL`DELETE FROM User WHERE Username = ${req.session.username}`);
+    await db.run(SQL`DELETE FROM UserSettings WHERE Username = ${req.session.username}`);
+    await db.run(SQL`DELETE FROM Moderator WHERE ModUsername = ${req.session.username}`);
     req.session.destroy((err) => {
         if (err) throw err;
         res.redirect('/signup');
@@ -126,6 +145,80 @@ app.post("/signup", async (req, res) => {
 
     req.session.username = username;
     res.redirect("/");
+});
+
+app.get('/explore', isAuthenticated, async (req, res) => {
+    const groupnames = await db.all(SQL`SELECT GroupName FROM \`Group\``);
+    res.render('pages/explore', {username: req.session.username, groups: groupnames});
+});
+
+app.get('/group/:groupname', isAuthenticated, async (req, res) => {
+    const group = await db.get(SQL`SELECT * FROM \`Group\` WHERE LOWER(GroupName) = LOWER(${req.params.groupname})`);
+    const moderator = await db.get(SQL`SELECT * FROM Moderates WHERE ModUsername = ${req.session.username} AND LOWER(GroupName) = LOWER(${req.params.groupname})`);
+
+    // being a moderator gives you more privileges
+    var isMod = 0;
+    if (moderator) {
+        isMod = 1;
+    }
+
+    if (group) {
+        res.render('pages/group', {username: req.session.username, groupinfo: group, mod: isMod});
+    }
+    else {
+        // replace with a page cannot be found later
+        res.render('pages/explore', {username: req.session.username});
+    }
+});
+
+app.post("/deletegroup", isAuthenticated, async (req, res) => {
+    await db.run(SQL`DELETE FROM \`Group\` WHERE GroupName = ${req.body.groupname}`);
+    await db.run(SQL`DELETE FROM Moderates WHERE GroupName = ${req.body.groupname}`);
+
+    // If any users don't have any groups they're moderating anymore after deletion
+    // drop them from the list of moderators.
+    const uselessMods = await db.all(SQL`
+    SELECT * FROM Moderator AS m
+    WHERE NOT EXISTS (
+        SELECT * FROM Moderates
+        WHERE ModUsername = m.ModUsername
+    )`);
+    for (var i = 0; i < uselessMods.length; i++) {
+        await db.run(SQL`DELETE FROM Moderator WHERE ModUsername = ${uselessMods[i].ModUsername}`);
+    }
+    res.redirect('/explore');
+});
+
+app.get('/creategroup', isAuthenticated, async (req, res) => {
+    res.render('pages/creategroup', {username: req.session.username});
+});
+
+app.post("/creategroup", async (req, res) => {
+    const groupname = req.body.create_groupname;
+    const description = req.body.create_description;
+
+    if (groupname.length < 1 || groupname.length > 25) {
+        return res.render('pages/creategroup', {username: req.session.username, message: "Group name must be between 1 and 25 characters", name: groupname});
+    }
+    if (/[^A-Za-z\d]/.test(groupname)) {
+        return res.render('pages/creategroup', {username: req.session.username, message: "Only alphanumeric characters allowed in group names", name: groupname});
+    }
+    if (description.length < 1) {
+        return res.render('pages/creategroup', {username: req.session.username, message: "Please add a description to your group", name: groupname});
+    }
+
+    // Check if group already exists
+    const group = await db.get(SQL`SELECT * FROM \`Group\` WHERE LOWER(GroupName) = LOWER(${groupname})`);
+    if (group) {
+        return res.render('pages/creategroup', {username: req.session.username, message: "Group name is taken", name: groupname});
+    }
+
+    // Creator automatically becomes a mod
+    await db.run(SQL`INSERT INTO \`Group\` VALUES(${groupname}, ${description}, ${req.session.username})`);
+    await db.run(SQL`INSERT OR IGNORE INTO Moderator VALUES(${req.session.username})`);
+    await db.run(SQL`INSERT INTO Moderates VALUES(${req.session.username}, ${groupname})`);
+
+    res.redirect("/group/" + groupname);
 });
 
 main();
