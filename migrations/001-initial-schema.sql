@@ -26,7 +26,9 @@ CREATE TABLE `comment` (
   `PostDate` date NOT NULL,
   `CreatorUsername` varchar(25) DEFAULT NULL,
   `AssociatedPost` int(11) NOT NULL,
-  PRIMARY KEY (`CommentID`)
+  PRIMARY KEY (`CommentID`),
+  CONSTRAINT `comment_ibfk_1` FOREIGN KEY (`CreatorUsername`) REFERENCES `user` (`username`) ON DELETE SET NULL ON UPDATE CASCADE,
+  CONSTRAINT `comment_ibfk_2` FOREIGN KEY (`AssociatedPost`) REFERENCES `post` (`postid`) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 --
@@ -37,7 +39,9 @@ DROP TABLE IF EXISTS `commentvote`;
 CREATE TABLE `commentvote` (
   `AssociatedComment` int(11) NOT NULL,
   `VoterUsername` varchar(25) NOT NULL,
-  PRIMARY KEY (`AssociatedComment`,`VoterUsername`)
+  PRIMARY KEY (`AssociatedComment`,`VoterUsername`),
+  CONSTRAINT `commentvote_ibfk_1` FOREIGN KEY (`AssociatedComment`) REFERENCES `comment` (`commentid`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `commentvote_ibfk_2` FOREIGN KEY (`VoterUsername`) REFERENCES `user` (`username`) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 --
@@ -73,7 +77,7 @@ CREATE TABLE `group` (
   `Description` varchar(5000) NOT NULL,
   `CreatorUsername` varchar(25) DEFAULT NULL,
   PRIMARY KEY (`GroupName`),
-  CONSTRAINT `group_ibfk_1` FOREIGN KEY (`CreatorUsername`) REFERENCES `user` (`username`) ON DELETE CASCADE ON UPDATE CASCADE
+  CONSTRAINT `group_ibfk_1` FOREIGN KEY (`CreatorUsername`) REFERENCES `user` (`username`) ON DELETE SET NULL ON UPDATE CASCADE
 );
 
 --
@@ -86,8 +90,10 @@ CREATE TABLE `mail` (
   `Subject` varchar(25) NOT NULL,
   `BodyText` varchar(5000) DEFAULT NULL,
   `Sender` varchar(25) DEFAULT NULL,
-  `Reciever` varchar(25) NOT NULL,
-  PRIMARY KEY (`MailID`)
+  `Receiver` varchar(25) NOT NULL,
+  PRIMARY KEY (`MailID`),
+  CONSTRAINT `mail_ibfk_1` FOREIGN KEY (`Sender`) REFERENCES `user` (`username`) ON DELETE SET NULL ON UPDATE CASCADE,
+  CONSTRAINT `mail_ibfk_2` FOREIGN KEY (`Receiver`) REFERENCES `user` (`username`) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 --
@@ -130,7 +136,10 @@ CREATE TABLE `post` (
   `PostDate` date NOT NULL,
   `IsNFSW` tinyint(1) DEFAULT '0',
   `CountryOfOrigin` varchar(25) DEFAULT NULL,
-  PRIMARY KEY (`PostID`)
+  PRIMARY KEY (`PostID`),
+  CONSTRAINT `post_ibfk_1` FOREIGN KEY (`CreatorUsername`) REFERENCES `user` (`username`) ON DELETE SET NULL ON UPDATE CASCADE,
+  CONSTRAINT `post_ibfk_2` FOREIGN KEY (`AssociatedGroup`) REFERENCES `group` (`groupname`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `post_ibfk_3` FOREIGN KEY (`CountryOfOrigin`) REFERENCES `country` (`name`) ON UPDATE CASCADE
 );
 
 --
@@ -141,7 +150,9 @@ DROP TABLE IF EXISTS `postvote`;
 CREATE TABLE `postvote` (
   `AssociatedPost` int(11) NOT NULL,
   `VoterUsername` varchar(25) NOT NULL,
-  PRIMARY KEY (`AssociatedPost`,`VoterUsername`)
+  PRIMARY KEY (`AssociatedPost`,`VoterUsername`),
+  CONSTRAINT `postvote_ibfk_1` FOREIGN KEY (`VoterUsername`) REFERENCES `user` (`username`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `postvote_ibfk_2` FOREIGN KEY (`AssociatedPost`) REFERENCES `post` (`postid`) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 --
@@ -177,7 +188,7 @@ CREATE TABLE `usersettings` (
   `Username` varchar(25) NOT NULL,
   `HideNSFW` tinyint(1) NOT NULL,
   PRIMARY KEY (`Username`),
-  CONSTRAINT `usersettings_ibfk_1` FOREIGN KEY (`Username`) REFERENCES `user` (`username`) ON DELETE CASCADE
+  CONSTRAINT `usersettings_ibfk_1` FOREIGN KEY (`Username`) REFERENCES `user` (`username`) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 -- Dump completed on 2018-10-30 19:38:24

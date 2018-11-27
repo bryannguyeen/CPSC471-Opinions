@@ -36,19 +36,8 @@ async function main() {
     db = await sqlite.open('./db.sqlite', { cached: true, Promise }).then(db => db.migrate());
     app.listen(port);
 
-    //await db.run(SQL`DELETE FROM \`Group\``);
-    //await db.run(SQL`DELETE FROM Moderator`);
-    //await db.run(SQL`DELETE FROM Moderates`);
-
-    // Delete whenever
-    /*
-    const mods = await db.all(SQL`SELECT * FROM Moderator`);
-    const groups = await db.all(SQL`SELECT * FROM \`Group\``);
-    const moderates = await db.all(SQL`SELECT * FROM Moderates`);
-    console.log(mods);
-    console.log(groups);
-    console.log(moderates);
-    */
+    // This query activates foreign constraints
+    await db.run(SQL`PRAGMA foreign_keys = ON`);
 
     console.log(`Listening on port ${port}: http://localhost:${port}`);
 }
@@ -82,8 +71,7 @@ app.post("/deleteaccount", isAuthenticated, async (req, res) => {
     }
     else {
         await db.run(SQL`DELETE FROM User WHERE Username = ${req.session.username}`);
-        await db.run(SQL`DELETE FROM UserSettings WHERE Username = ${req.session.username}`);
-        await db.run(SQL`DELETE FROM Moderator WHERE ModUsername = ${req.session.username}`);
+        //await db.run(SQL`DELETE FROM UserSettings WHERE Username = ${req.session.username}`);
         req.session.destroy((err) => {
             if (err) throw err;
             res.redirect('/signup');
@@ -159,7 +147,7 @@ app.get('/explore', isAuthenticated, async (req, res) => {
     res.render('pages/explore', {username: req.session.username, groups: groupnames});
 });
 
-app.get('/group/:groupname/', isAuthenticated, async (req, res) => {
+app.get('/group/:groupname', isAuthenticated, async (req, res) => {
     const group = await db.get(SQL`SELECT * FROM \`Group\` WHERE LOWER(GroupName) = LOWER(${req.params.groupname})`);
     const moderator = await db.get(SQL`SELECT * FROM Moderates WHERE ModUsername = ${req.session.username} AND LOWER(GroupName) = LOWER(${req.params.groupname})`);
 
@@ -314,4 +302,8 @@ app.post("/creategroup", async (req, res) => {
     res.redirect("/group/" + groupname);
 });
 
+app.get('/mailbox', isAuthenticated, async (req, res) => {
+    const mail = await db.all(SQL`SELECT * FROM Mail WHERE Receiver = ${req.session.username}`);
+    res.render('pages/mailbox', {username: req.session.username, mail: mail});
+});
 main();
