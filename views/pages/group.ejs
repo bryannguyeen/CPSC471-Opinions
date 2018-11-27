@@ -11,7 +11,8 @@
 
 <main>
     <h1><%= locals.groupinfo.GroupName %></h1>
-    <%= locals.groupinfo.Description %>
+    <%= locals.groupinfo.Description %><br>
+    <small>Group Home | <a href="/group/<%= locals.groupinfo.GroupName %>/moderators">Moderators</a></small>
     <div class="jumbotron">
         the group!
         <% if (locals.mod) { %>

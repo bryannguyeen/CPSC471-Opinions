@@ -19,6 +19,10 @@
 
         <form action="/deleteaccount" method="POST" align="right">
             <button>Delete account</button>
+            <br>
+            <% if (locals.message) { %>
+                <%= message %>
+            <% } %>
         </form>
     </div>
 </main>

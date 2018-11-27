@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <% include ../partials/head %>
+</head>
+<body class="container">
+
+<header>
+    <%- include('../partials/header', {user: username}); %>
+</header>
+
+<main>
+    <h1><%= locals.groupinfo.GroupName %></h1>
+    <%= locals.groupinfo.Description %><br>
+    <small><a href="/group/<%= locals.groupinfo.GroupName %>">Group Home</a> | Moderators</small>
+    <div class="jumbotron">
+        <ul>
+        <% for (var i=0; i < locals.modsinfo.length; i++) { %>
+            <li><%= locals.modsinfo[i].ModUsername %></li>
+        <% } %>
+        </ul>
+        <% if (locals.mod) { %>
+            <form action="/group/<%= locals.groupinfo.GroupName %>/moderators" method="POST">
+                <input placeholder="Username" name="add_moderator">
+                <button>Add moderator</button>
+            </form>
+            <% if (locals.message) { %>
+                <%= message %>
+            <% } %>
+            <form action="/group/<%= locals.groupinfo.GroupName %>/leave" method="POST" align="right">
+                <button>Leave as moderator</button>
+            </form>
+            <% if (locals.message2) { %>
+                <p align=right><%= message2 %></p>
+            <% } %>
+        <% } %>
+    </div>
+</main>
+
+</body>
+</html>

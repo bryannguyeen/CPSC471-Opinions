@@ -73,15 +73,22 @@ app.post("/settings", isAuthenticated, async (req, res) => {
 
 app.post("/deleteaccount", isAuthenticated, async (req, res) => {
     // make sure mods can't delete account
+    const moderator = await db.get(SQL`SELECT * FROM Moderator WHERE ModUsername = ${req.session.username}`);
 
-
-    await db.run(SQL`DELETE FROM User WHERE Username = ${req.session.username}`);
-    await db.run(SQL`DELETE FROM UserSettings WHERE Username = ${req.session.username}`);
-    await db.run(SQL`DELETE FROM Moderator WHERE ModUsername = ${req.session.username}`);
-    req.session.destroy((err) => {
-        if (err) throw err;
-        res.redirect('/signup');
-    });
+    if (moderator) {
+        const settings = await db.get(SQL`SELECT * FROM UserSettings WHERE Username = ${req.session.username}`);
+        res.render('pages/settings', {username: req.session.username, flag: settings && settings.HideNSFW,
+            message: "Cannot delete account because you are a mod of a group. Leave all your groups first."});
+    }
+    else {
+        await db.run(SQL`DELETE FROM User WHERE Username = ${req.session.username}`);
+        await db.run(SQL`DELETE FROM UserSettings WHERE Username = ${req.session.username}`);
+        await db.run(SQL`DELETE FROM Moderator WHERE ModUsername = ${req.session.username}`);
+        req.session.destroy((err) => {
+            if (err) throw err;
+            res.redirect('/signup');
+        });
+    }
 });
 
 app.get("/login", async (req, res) => {
@@ -152,7 +159,7 @@ app.get('/explore', isAuthenticated, async (req, res) => {
     res.render('pages/explore', {username: req.session.username, groups: groupnames});
 });
 
-app.get('/group/:groupname', isAuthenticated, async (req, res) => {
+app.get('/group/:groupname/', isAuthenticated, async (req, res) => {
     const group = await db.get(SQL`SELECT * FROM \`Group\` WHERE LOWER(GroupName) = LOWER(${req.params.groupname})`);
     const moderator = await db.get(SQL`SELECT * FROM Moderates WHERE ModUsername = ${req.session.username} AND LOWER(GroupName) = LOWER(${req.params.groupname})`);
 
@@ -167,7 +174,93 @@ app.get('/group/:groupname', isAuthenticated, async (req, res) => {
     }
     else {
         // replace with a page cannot be found later
-        res.render('pages/explore', {username: req.session.username});
+        res.type('txt').send('Not found');
+    }
+});
+
+app.get('/group/:groupname/moderators', isAuthenticated, async (req, res) => {
+    const group = await db.get(SQL`SELECT * FROM \`Group\` WHERE LOWER(GroupName) = LOWER(${req.params.groupname})`);
+    const moderator = await db.get(SQL`SELECT * FROM Moderates WHERE ModUsername = ${req.session.username} AND LOWER(GroupName) = LOWER(${req.params.groupname})`);
+    const groupmods = await db.all(SQL`SELECT * FROM Moderates WHERE LOWER(GroupName) = LOWER(${req.params.groupname})`);
+
+    // being a moderator gives you more privileges
+    var isMod = 0;
+    if (moderator) {
+        isMod = 1;
+    }
+    if (group) {
+        res.render('pages/moderators', {username: req.session.username, groupinfo: group, mod: isMod, modsinfo: groupmods});
+    }
+    else {
+        // replace with a page cannot be found later
+        res.type('txt').send('Not found');
+    }
+});
+
+app.post('/group/:groupname/moderators', isAuthenticated, async (req, res) => {
+    const newMod = req.body.add_moderator;
+
+    const group = await db.get(SQL`SELECT * FROM \`Group\` WHERE LOWER(GroupName) = LOWER(${req.params.groupname})`);
+    const moderator = await db.get(SQL`SELECT * FROM Moderates WHERE ModUsername = ${req.session.username} AND LOWER(GroupName) = LOWER(${req.params.groupname})`);
+    var groupmods = await db.all(SQL`SELECT * FROM Moderates WHERE LOWER(GroupName) = LOWER(${req.params.groupname})`);
+
+    // being a moderator gives you more privileges
+    var isMod = 0;
+    if (moderator) {
+        isMod = 1;
+    }
+
+    // Check if user exists
+    const user = await db.get(SQL`SELECT * FROM User WHERE LOWER(Username) = LOWER(${newMod})`);
+
+    // Check if user is already a mod
+    const alreadyMod = await db.get(SQL`SELECT * FROM Moderates WHERE LOWER(ModUsername) = LOWER(${newMod}) AND LOWER(GroupName) = LOWER(${req.params.groupname})`);
+
+    if (user) {
+        if (!alreadyMod) {
+            await db.run(SQL`INSERT INTO Moderates VALUES(${user.Username}, ${req.params.groupname})`);
+            groupmods = await db.all(SQL`SELECT * FROM Moderates WHERE LOWER(GroupName) = LOWER(${req.params.groupname})`);
+            res.render('pages/moderators', {username: req.session.username, groupinfo: group, mod: isMod, modsinfo: groupmods,
+                message: user.Username + " has been added"});
+        }
+        else {
+            res.render('pages/moderators', {username: req.session.username, groupinfo: group, mod: isMod, modsinfo: groupmods,
+                message: user.Username + " is already a moderator"});
+        }
+    }
+    else {
+        res.render('pages/moderators', {username: req.session.username, groupinfo: group, mod: isMod, modsinfo: groupmods,
+            message: "User does not exist"});
+    }
+});
+
+app.post('/group/:groupname/leave', isAuthenticated, async (req, res) => {
+    const group = await db.get(SQL`SELECT * FROM \`Group\` WHERE LOWER(GroupName) = LOWER(${req.params.groupname})`);
+    const moderator = await db.get(SQL`SELECT * FROM Moderates WHERE ModUsername = ${req.session.username} AND LOWER(GroupName) = LOWER(${req.params.groupname})`);
+    const groupmods = await db.all(SQL`SELECT * FROM Moderates WHERE LOWER(GroupName) = LOWER(${req.params.groupname})`);
+
+    // being a moderator gives you more privileges
+    var isMod = 0;
+    if (moderator) {
+        isMod = 1;
+    }
+
+    if (groupmods.length > 1) {
+        await db.run(SQL`DELETE FROM Moderates WHERE ModUsername = ${req.session.username} AND LOWER(GroupName) = LOWER(${req.params.groupname})`);
+
+        // if user isn't moderating anything anymore delete them from moderators
+        const moderating = await db.get(SQL`
+            SELECT * FROM Moderates
+            WHERE ModUsername = ${req.session.username}`);
+        if (!moderating) {
+            await db.run(SQL`DELETE FROM Moderator WHERE ModUsername = ${req.session.username}`);
+        }
+        res.redirect('/group/' + req.params.groupname + '/moderators');
+        res.end()
+    }
+    else {
+        res.render('pages/moderators', {username: req.session.username, groupinfo: group, mod: isMod, modsinfo: groupmods,
+            message2: "Cannot leave as you are the only moderator"});
     }
 });
 
