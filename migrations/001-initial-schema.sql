@@ -20,7 +20,7 @@ CREATE TABLE `adminstrator` (
 
 DROP TABLE IF EXISTS `comment`;
 CREATE TABLE `comment` (
-  `CommentID` int(11) NOT NULL,
+  `CommentID` INTEGER,
   `BodyText` varchar(2000) NOT NULL,
   `IsNSFW` tinyint(1) DEFAULT '0',
   `PostDate` date NOT NULL,
@@ -86,7 +86,7 @@ CREATE TABLE `group` (
 
 DROP TABLE IF EXISTS `mail`;
 CREATE TABLE `mail` (
-  `MailID` int(11) NOT NULL,
+  `MailID` INTEGER,
   `Subject` varchar(25) NOT NULL,
   `BodyText` varchar(5000) DEFAULT NULL,
   `Sender` varchar(25) DEFAULT NULL,
@@ -126,7 +126,7 @@ CREATE TABLE `moderator` (
 
 DROP TABLE IF EXISTS `post`;
 CREATE TABLE `post` (
-  `PostID` int(11) NOT NULL,
+  `PostID` INTEGER,
   `CreatorUsername` varchar(25) DEFAULT NULL,
   `AssociatedGroup` varchar(25) NOT NULL,
   `Score` int(11) DEFAULT '0',

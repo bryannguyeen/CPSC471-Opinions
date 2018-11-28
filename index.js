@@ -66,12 +66,11 @@ app.post("/deleteaccount", isAuthenticated, async (req, res) => {
 
     if (moderator) {
         const settings = await db.get(SQL`SELECT * FROM UserSettings WHERE Username = ${req.session.username}`);
-        res.render('pages/settings', {username: req.session.username, flag: settings && settings.HideNSFW,
+        return res.render('pages/settings', {username: req.session.username, flag: settings && settings.HideNSFW,
             message: "Cannot delete account because you are a mod of a group. Leave all your groups first."});
     }
     else {
         await db.run(SQL`DELETE FROM User WHERE Username = ${req.session.username}`);
-        //await db.run(SQL`DELETE FROM UserSettings WHERE Username = ${req.session.username}`);
         req.session.destroy((err) => {
             if (err) throw err;
             res.redirect('/signup');
@@ -208,16 +207,16 @@ app.post('/group/:groupname/moderators', isAuthenticated, async (req, res) => {
         if (!alreadyMod) {
             await db.run(SQL`INSERT INTO Moderates VALUES(${user.Username}, ${req.params.groupname})`);
             groupmods = await db.all(SQL`SELECT * FROM Moderates WHERE LOWER(GroupName) = LOWER(${req.params.groupname})`);
-            res.render('pages/moderators', {username: req.session.username, groupinfo: group, mod: isMod, modsinfo: groupmods,
+            return res.render('pages/moderators', {username: req.session.username, groupinfo: group, mod: isMod, modsinfo: groupmods,
                 message: user.Username + " has been added"});
         }
         else {
-            res.render('pages/moderators', {username: req.session.username, groupinfo: group, mod: isMod, modsinfo: groupmods,
+            return res.render('pages/moderators', {username: req.session.username, groupinfo: group, mod: isMod, modsinfo: groupmods,
                 message: user.Username + " is already a moderator"});
         }
     }
     else {
-        res.render('pages/moderators', {username: req.session.username, groupinfo: group, mod: isMod, modsinfo: groupmods,
+        return res.render('pages/moderators', {username: req.session.username, groupinfo: group, mod: isMod, modsinfo: groupmods,
             message: "User does not exist"});
     }
 });
@@ -247,14 +246,13 @@ app.post('/group/:groupname/leave', isAuthenticated, async (req, res) => {
         res.end()
     }
     else {
-        res.render('pages/moderators', {username: req.session.username, groupinfo: group, mod: isMod, modsinfo: groupmods,
+        return res.render('pages/moderators', {username: req.session.username, groupinfo: group, mod: isMod, modsinfo: groupmods,
             message2: "Cannot leave as you are the only moderator"});
     }
 });
 
 app.post("/deletegroup", isAuthenticated, async (req, res) => {
     await db.run(SQL`DELETE FROM \`Group\` WHERE GroupName = ${req.body.groupname}`);
-    await db.run(SQL`DELETE FROM Moderates WHERE GroupName = ${req.body.groupname}`);
 
     // If any users don't have any groups they're moderating anymore after deletion
     // drop them from the list of moderators.
@@ -287,6 +285,9 @@ app.post("/creategroup", async (req, res) => {
     if (description.length < 1) {
         return res.render('pages/creategroup', {username: req.session.username, message: "Please add a description to your group", name: groupname});
     }
+    if (description.length > 5000) {
+        return res.render('pages/creategroup', {username: req.session.username, message: "Description is over 5000 characters", name: groupname});
+    }
 
     // Check if group already exists
     const group = await db.get(SQL`SELECT * FROM \`Group\` WHERE LOWER(GroupName) = LOWER(${groupname})`);
@@ -299,11 +300,57 @@ app.post("/creategroup", async (req, res) => {
     await db.run(SQL`INSERT OR IGNORE INTO Moderator VALUES(${req.session.username})`);
     await db.run(SQL`INSERT INTO Moderates VALUES(${req.session.username}, ${groupname})`);
 
-    res.redirect("/group/" + groupname);
+    res.redirect("/group" + groupname);
 });
 
-app.get('/mailbox', isAuthenticated, async (req, res) => {
+app.get('/inbox', isAuthenticated, async (req, res) => {
     const mail = await db.all(SQL`SELECT * FROM Mail WHERE Receiver = ${req.session.username}`);
-    res.render('pages/mailbox', {username: req.session.username, mail: mail});
+    res.render('pages/inbox', {username: req.session.username, mailpile: mail});
+});
+
+app.get('/compose', isAuthenticated, async (req, res) => {
+    res.render('pages/compose', {username: req.session.username});
+});
+
+app.post("/compose", async (req, res) => {
+    const recipient = req.body.recipient;
+    const subject = req.body.subject;
+    const message_body = req.body.message_body;
+
+    if (subject.length > 25) {
+        return res.render('pages/compose', {username: req.session.username, message: "Subject is too big",
+            recipient: recipient, subject: subject, body: message_body});
+    }
+    if (message_body > 5000) {
+        return res.render('pages/compose', {username: req.session.username, message: "Message exceeds 5000 characters",
+            recipient: recipient, subject: subject, body: message_body});
+    }
+
+    // check if recipient exists
+    const user = await db.get(SQL`SELECT * FROM User WHERE LOWER(Username) = LOWER(${recipient})`);
+    if (user) {
+        await db.run(`INSERT INTO Mail VALUES (NULL, \'${subject}\', \'${message_body}\', \'${req.session.username}\', \'${user.Username}\')`);
+        return res.render('pages/generic', {username: req.session.username, messageH: "Success!", messageP: "Your message has been sent."});
+    }
+    else {
+        return res.render('pages/compose', {username: req.session.username, message: "Username does not exist",
+            recipient: recipient, subject: subject, body: message_body});
+    }
+});
+
+app.get('/mail/:id', isAuthenticated, async (req, res) => {
+    const mailID = req.params.id;
+    //if (!isNaN(mailID))
+
+    // Check if mail exists and belongs to the user that is signed in
+    const mail = await db.get(SQL`SELECT * FROM Mail WHERE Receiver = ${req.session.username} AND MailID = ${mailID}`);
+
+    if (!mail) {
+        return res.render('pages/generic', {username: req.session.username, messageP: "You are not authorized to view this page"});
+    }
+    else {
+        return res.render('pages/mail', {username: req.session.username, mail: mail});
+    }
+
 });
 main();

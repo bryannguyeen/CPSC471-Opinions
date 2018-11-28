@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <% include ../partials/head %>
+</head>
+<body class="container">
+
+<header>
+    <%- include('../partials/header', {user: username}); %>
+</header>
+
+<main>
+    <div class="jumbotron">
+        <form action="/compose" align="right">
+            <button>Compose</button>
+        </form>
+        <hr>
+        <% for (var i=0; i < locals.mailpile.length; i++) { %>
+            <a href="/mail/<%= locals.mailpile[i].MailID %>"><h4><%= locals.mailpile[i].Subject %></h4></a>
+            <small>Sent by <%= locals.mailpile[i].Sender %></small>
+            <hr>
+        <% } %>
+    </div>
+</main>
+
+</body>
+</html>

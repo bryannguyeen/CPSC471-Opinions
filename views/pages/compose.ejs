@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <% include ../partials/head %>
+</head>
+<body class="container">
+
+<header>
+    <%- include('../partials/header', {user: username}); %>
+</header>
+
+<main>
+    <div class="jumbotron">
+        <% if (locals.message) { %>
+            <h2><%= message %></h2>
+        <% } %>
+        <form action="/compose" method="POST">
+            <h4><input placeholder="Recipient" name="recipient" value=<%= locals.name %>></h4>
+            <h4><input placeholder="Subject" name="subject" value=<%= locals.subject %>></h4>
+            <textarea rows="7" cols="75" placeholder="Message (Max 5000 Characters)" name="message_body"><%= locals.body %></textarea><br/>
+            <button>Send</button>
+        </form>
+    </div>
+</main>
+
+</body>
+</html>

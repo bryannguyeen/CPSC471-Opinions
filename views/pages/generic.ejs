@@ -11,11 +11,11 @@
 
 <main>
     <div class="jumbotron">
-        <form action="/compose" align="right">
-            <button>Compose</button>
-        </form>
-        <% for (var i=0; i < locals.mail.length; i++) { %>
-            <h4><%= locals.mail[i].Subject %></h4>
+        <% if (locals.messageH) { %>
+            <h2><%= messageH %></h2>
+        <% } %>
+        <% if (locals.messageP) { %>
+            <p><%= messageP %></p>
         <% } %>
     </div>
 </main>
