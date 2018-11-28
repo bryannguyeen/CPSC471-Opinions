@@ -20,6 +20,31 @@
             <small>Sent by <%= locals.mailpile[i].Sender %></small>
             <hr>
         <% } %>
+
+        <% const nextPage = Number(locals.page) + 1 %>
+        <% const previousPage = Number(locals.page) - 1 %>
+
+
+
+
+        <h5>
+        <% if (Number(locals.page) > 1) { %>
+            <a href="/inbox/<%= previousPage %>">&ltPrevious Page</a>
+        <% } %>
+        &nbsp
+        <% for (var i=1; i <= locals.totalPages; i++) { %>
+            <% if (i == Number(locals.page)) { %>
+                <%= i %>
+            <% } else { %>
+                <a href="/inbox/<%= i %>"> <%= i %> </a>
+            <% } %>
+
+            &nbsp
+        <% } %>
+        <% if (Number(locals.page) < Number(locals.totalPages)) { %>
+            <a href="/inbox/<%= nextPage %>">Next Page></a>
+        <% } %>
+        </h5>
     </div>
 </main>
 

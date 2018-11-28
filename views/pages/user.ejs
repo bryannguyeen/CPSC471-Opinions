@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <% include ../partials/head %>
+</head>
+<body class="container">
+
+<header>
+    <%- include('../partials/header', {user: username}); %>
+</header>
+
+<main>
+    <h1><%= locals.userinfo.Username %></h1>
+    <small>
+        <a href="/compose?sendto=<%= locals.userinfo.Username %>">Message</a><br>
+        Prestige: <br>
+        Posts | Upvoted Posts
+    </small>
+    <div class="jumbotron">
+        the user!
+    </div>
+</main>
+
+</body>
+</html>

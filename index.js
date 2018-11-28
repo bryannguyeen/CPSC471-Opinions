@@ -141,6 +141,18 @@ app.post("/signup", async (req, res) => {
     res.redirect("/");
 });
 
+app.get('/user/:username', isAuthenticated, async (req, res) => {
+    // check if user exists
+    const user = await db.get(SQL`SELECT * FROM User WHERE LOWER(Username) = LOWER(${req.params.username})`);
+     // later we will add the user's posts too
+
+    if (user) {
+        return res.render('pages/user', {username: req.session.username, userinfo: user});    }
+    else {
+        return res.render('pages/generic', {username: req.session.username, messageH: "User does not exist"});
+    }
+});
+
 app.get('/explore', isAuthenticated, async (req, res) => {
     const groupnames = await db.all(SQL`SELECT GroupName FROM \`Group\``);
     res.render('pages/explore', {username: req.session.username, groups: groupnames});
@@ -149,6 +161,7 @@ app.get('/explore', isAuthenticated, async (req, res) => {
 app.get('/group/:groupname', isAuthenticated, async (req, res) => {
     const group = await db.get(SQL`SELECT * FROM \`Group\` WHERE LOWER(GroupName) = LOWER(${req.params.groupname})`);
     const moderator = await db.get(SQL`SELECT * FROM Moderates WHERE ModUsername = ${req.session.username} AND LOWER(GroupName) = LOWER(${req.params.groupname})`);
+    // later we will add the group's posts too
 
     // being a moderator gives you more privileges
     var isMod = 0;
@@ -157,11 +170,10 @@ app.get('/group/:groupname', isAuthenticated, async (req, res) => {
     }
 
     if (group) {
-        res.render('pages/group', {username: req.session.username, groupinfo: group, mod: isMod});
+        return res.render('pages/group', {username: req.session.username, groupinfo: group, mod: isMod});
     }
     else {
-        // replace with a page cannot be found later
-        res.type('txt').send('Not found');
+        return res.render('pages/generic', {username: req.session.username, messageH: "Group cannot be found"});
     }
 });
 
@@ -300,16 +312,20 @@ app.post("/creategroup", async (req, res) => {
     await db.run(SQL`INSERT OR IGNORE INTO Moderator VALUES(${req.session.username})`);
     await db.run(SQL`INSERT INTO Moderates VALUES(${req.session.username}, ${groupname})`);
 
-    res.redirect("/group" + groupname);
+    res.redirect("/group/" + groupname);
 });
 
-app.get('/inbox', isAuthenticated, async (req, res) => {
-    const mail = await db.all(SQL`SELECT * FROM Mail WHERE Receiver = ${req.session.username}`);
-    res.render('pages/inbox', {username: req.session.username, mailpile: mail});
+app.get('/inbox/:pageNo', isAuthenticated, async (req, res) => {
+    const offset = (Number(req.params.pageNo) - 1) * 10;
+    const countMail = await db.get(SQL`SELECT COUNT(*) as count FROM Mail WHERE Receiver = ${req.session.username}`)
+    const numPages = Math.ceil(parseFloat(countMail.count) / 10)
+
+    const mail = await db.all(SQL`SELECT * FROM Mail WHERE Receiver = ${req.session.username} ORDER BY MailID DESC LIMIT 10 OFFSET ${offset}`);
+    res.render('pages/inbox', {username: req.session.username, mailpile: mail, page: req.params.pageNo, totalPages: numPages});
 });
 
 app.get('/compose', isAuthenticated, async (req, res) => {
-    res.render('pages/compose', {username: req.session.username});
+    res.render('pages/compose', {username: req.session.username, recipient: req.query.sendto});
 });
 
 app.post("/compose", async (req, res) => {
@@ -340,8 +356,6 @@ app.post("/compose", async (req, res) => {
 
 app.get('/mail/:id', isAuthenticated, async (req, res) => {
     const mailID = req.params.id;
-    //if (!isNaN(mailID))
-
     // Check if mail exists and belongs to the user that is signed in
     const mail = await db.get(SQL`SELECT * FROM Mail WHERE Receiver = ${req.session.username} AND MailID = ${mailID}`);
 
@@ -353,4 +367,10 @@ app.get('/mail/:id', isAuthenticated, async (req, res) => {
     }
 
 });
+
+app.post("/deletemail", isAuthenticated, async (req, res) => {
+    await db.run(SQL`DELETE FROM Mail WHERE MailID = ${req.body.mailID}`);
+    res.redirect('/inbox/1');
+});
+
 main();

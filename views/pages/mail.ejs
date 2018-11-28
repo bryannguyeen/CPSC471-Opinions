@@ -15,6 +15,11 @@
         <hr>
         <p><%= mail.BodyText %></p>
         <p>-<%= mail.Sender %></p>
+
+        <form action="/deletemail" method="POST" align="right">
+            <input type="hidden" name="mailID" value=<%= locals.mail.MailID %>>
+            <button>Discard</button>
+        </form>
     </div>
 </main>
 
