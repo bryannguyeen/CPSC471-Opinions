@@ -143,26 +143,42 @@ app.post("/signup", async (req, res) => {
 
 app.get('/user/:username', isAuthenticated, async (req, res) => {
     // check if user exists
-//    const user = await db.get(SQL`SELECT * FROM User WHERE LOWER(Username) = LOWER(${req.params.username})`);
-      const user = await db.get(SQL `SELECT username, CreatorUsername, Follower, SubscriberUsername
+    const user = await db.get(SQL`SELECT * FROM User WHERE LOWER(Username) = LOWER(${req.params.username})`);
+      const user2 = await db.get(SQL `SELECT username, CreatorUsername, Follower, SubscriberUsername
         FROM User AS U, post AS P, follows AS F, subscribedto AS S
         WHERE (LOWER(U.username) = LOWER(${req.params.username})
         AND LOWER(P.CreatorUsername) = LOWER(${req.params.username})
         AND LOWER(F.Follower) = LOWER(${req.params.username})
-        AND LOWER(S.subscribedto) = LOWER(${req.params.username}));`
+        AND LOWER(S.SubscriberUsername) = LOWER(${req.params.username}));`
       )
      // later we will add the user's posts too
 
 
+    // check if logged in user is following this user's page
+    var isFollowing = 0;
+    const follower = await db.get(SQL`SELECT * FROM Follows WHERE follower = ${req.session.username} AND LOWER(Followee) = LOWER(${req.params.username})`);
+    if (follower) {
+        isFollowing = 1;
+    }
 
     if (user) {
-        return res.render('pages/user', {username: req.session.username, userinfo: user});    }
+        return res.render('pages/user', {username: req.session.username, userinfo: user, followed: isFollowing});    }
     else {
         return res.render('pages/generic', {username: req.session.username, messageH: "User does not exist"});
     }
 });
 
-app.get('/user/follows')
+app.post("/follow", isAuthenticated, async (req, res) => {
+    await db.run(SQL`INSERT INTO Follows VALUES(${req.session.username}, ${req.body.page_username})`);
+
+    res.redirect('/user/' + req.body.page_username);
+});
+
+app.post("/unfollow", isAuthenticated, async (req, res) => {
+    await db.run(SQL`DELETE FROM Follows WHERE Follower = ${req.session.username} AND Followee = ${req.body.page_username}`);
+
+    res.redirect('/user/' + req.body.page_username);
+});
 
 app.get('/explore', isAuthenticated, async (req, res) => {
     const groupnames = await db.all(SQL`SELECT GroupName FROM \`Group\``);
@@ -180,12 +196,31 @@ app.get('/group/:groupname', isAuthenticated, async (req, res) => {
         isMod = 1;
     }
 
+    // check if user is subscribed or not
+    var isSubscribed = 0;
+    const subscriber = await db.get(SQL`SELECT * FROM SubscribedTo WHERE SubscriberUsername = ${req.session.username} AND LOWER(GroupName) = LOWER(${req.params.groupname})`);
+    if (subscriber) {
+        isSubscribed = 1;
+    }
+
     if (group) {
-        return res.render('pages/group', {username: req.session.username, groupinfo: group, mod: isMod});
+        return res.render('pages/group', {username: req.session.username, groupinfo: group, mod: isMod, subscribed: isSubscribed});
     }
     else {
         return res.render('pages/generic', {username: req.session.username, messageH: "Group cannot be found"});
     }
+});
+
+app.post("/subscribe", isAuthenticated, async (req, res) => {
+    await db.run(SQL`INSERT INTO SubscribedTo VALUES(${req.session.username}, ${req.body.groupname})`);
+
+    res.redirect('/group/' + req.body.groupname);
+});
+
+app.post("/unsubscribe", isAuthenticated, async (req, res) => {
+    await db.run(SQL`DELETE FROM SubscribedTo WHERE SubscriberUsername = ${req.session.username} AND GroupName = ${req.body.groupname}`);
+
+    res.redirect('/group/' + req.body.groupname);
 });
 
 app.get('/group/:groupname/moderators', isAuthenticated, async (req, res) => {
@@ -199,11 +234,10 @@ app.get('/group/:groupname/moderators', isAuthenticated, async (req, res) => {
         isMod = 1;
     }
     if (group) {
-        res.render('pages/moderators', {username: req.session.username, groupinfo: group, mod: isMod, modsinfo: groupmods});
+        return res.render('pages/moderators', {username: req.session.username, groupinfo: group, mod: isMod, modsinfo: groupmods});
     }
     else {
-        // replace with a page cannot be found later
-        res.type('txt').send('Not found');
+        return res.render('pages/generic', {username: req.session.username, messageH: "Group cannot be found"});
     }
 });
 
@@ -295,7 +329,7 @@ app.get('/creategroup', isAuthenticated, async (req, res) => {
     res.render('pages/creategroup', {username: req.session.username});
 });
 
-app.post("/creategroup", async (req, res) => {
+app.post("/creategroup", isAuthenticated, async (req, res) => {
     const groupname = req.body.create_groupname;
     const description = req.body.create_description;
 
@@ -326,6 +360,10 @@ app.post("/creategroup", async (req, res) => {
     res.redirect("/group/" + groupname);
 });
 
+app.get('/inbox', isAuthenticated, async (req, res) => {
+    res.redirect('/inbox/1');
+});
+
 app.get('/inbox/:pageNo', isAuthenticated, async (req, res) => {
     const offset = (Number(req.params.pageNo) - 1) * 10;
     const countMail = await db.get(SQL`SELECT COUNT(*) as count FROM Mail WHERE Receiver = ${req.session.username}`)
@@ -339,7 +377,7 @@ app.get('/compose', isAuthenticated, async (req, res) => {
     res.render('pages/compose', {username: req.session.username, recipient: req.query.sendto});
 });
 
-app.post("/compose", async (req, res) => {
+app.post("/compose", isAuthenticated, async (req, res) => {
     const recipient = req.body.recipient;
     const subject = req.body.subject;
     const message_body = req.body.message_body;

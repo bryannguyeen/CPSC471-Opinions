@@ -17,6 +17,18 @@
         Posts | Upvoted Posts
     </small>
     <div class="jumbotron">
+        <% if (locals.followed) { %>
+            <form action="/unfollow" method="POST" align="right">
+                <input type="hidden" name="page_username" value=<%= locals.userinfo.Username %>>
+                <button>Unfollow</button>
+            </form>
+        <% } else { %>
+            <form action="/follow" method="POST" align="right">
+                <input type="hidden" name="page_username" value=<%= locals.userinfo.Username %>>
+                <button>Follow</button>
+            </form>
+        <% } %>
+
         the user!
     </div>
 </main>
