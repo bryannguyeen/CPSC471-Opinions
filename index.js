@@ -143,8 +143,17 @@ app.post("/signup", async (req, res) => {
 
 app.get('/user/:username', isAuthenticated, async (req, res) => {
     // check if user exists
-    const user = await db.get(SQL`SELECT * FROM User WHERE LOWER(Username) = LOWER(${req.params.username})`);
+//    const user = await db.get(SQL`SELECT * FROM User WHERE LOWER(Username) = LOWER(${req.params.username})`);
+      const user = await db.get(SQL `SELECT username, CreatorUsername, Follower, SubscriberUsername
+        FROM User AS U, post AS P, follows AS F, subscribedto AS S
+        WHERE (LOWER(U.username) = LOWER(${req.params.username})
+        AND LOWER(P.CreatorUsername) = LOWER(${req.params.username})
+        AND LOWER(F.Follower) = LOWER(${req.params.username})
+        AND LOWER(S.subscribedto) = LOWER(${req.params.username}));`
+      )
      // later we will add the user's posts too
+
+
 
     if (user) {
         return res.render('pages/user', {username: req.session.username, userinfo: user});    }
@@ -152,6 +161,8 @@ app.get('/user/:username', isAuthenticated, async (req, res) => {
         return res.render('pages/generic', {username: req.session.username, messageH: "User does not exist"});
     }
 });
+
+app.get('/user/follows')
 
 app.get('/explore', isAuthenticated, async (req, res) => {
     const groupnames = await db.all(SQL`SELECT GroupName FROM \`Group\``);
@@ -372,5 +383,11 @@ app.post("/deletemail", isAuthenticated, async (req, res) => {
     await db.run(SQL`DELETE FROM Mail WHERE MailID = ${req.body.mailID}`);
     res.redirect('/inbox/1');
 });
+
+
+
+
+
+
 
 main();
