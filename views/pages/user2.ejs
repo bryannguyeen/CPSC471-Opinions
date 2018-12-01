@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!--<!DOCTYPE html>
 <html lang="en">
 <head>
     <% include ../partials/head %>
@@ -19,10 +19,6 @@
         Posts | Upvoted Posts
     </small>
     <div class="jumbotron">
-      <form action="/user/<%= locals.userinfo.Username %>" method="POST" align="right">
-          the user!
-      </form>
-
         <% if (locals.followed) { %>
             <form action="/unfollow" method="POST" align="right">
                 <input type="hidden" name="page_username" value=<%= locals.userinfo.Username %>>
@@ -35,9 +31,9 @@
             </form>
         <% } %>
 
-
+        the user!
     </div>
 </main>
 
 </body>
-</html>
+</html>-->

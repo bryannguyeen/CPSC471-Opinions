@@ -7,6 +7,7 @@ const sqlite = require('sqlite');
 const config = require('./config');
 const session = require('express-session');
 const bodyParser = require('body-parser');
+var path = require('path')
 
 if (!config.session.secret) {
     throw new Error('You must fill in the session secret in the config')
@@ -143,14 +144,16 @@ app.post("/signup", async (req, res) => {
 
 app.get('/user/:username', isAuthenticated, async (req, res) => {
     // check if user exists
+    var theUser = req.params.username;
+    console.log('Username is %s', theUser);
     const user = await db.get(SQL`SELECT * FROM User WHERE LOWER(Username) = LOWER(${req.params.username})`);
-      const user2 = await db.get(SQL `SELECT username, CreatorUsername, Follower, SubscriberUsername
+/*      const user2 = await db.get(SQL `SELECT username, CreatorUsername, Follower, SubscriberUsername
         FROM User AS U, post AS P, follows AS F, subscribedto AS S
         WHERE (LOWER(U.username) = LOWER(${req.params.username})
         AND LOWER(P.CreatorUsername) = LOWER(${req.params.username})
         AND LOWER(F.Follower) = LOWER(${req.params.username})
         AND LOWER(S.SubscriberUsername) = LOWER(${req.params.username}));`
-      )
+      )*/
      // later we will add the user's posts too
 
 
@@ -160,13 +163,23 @@ app.get('/user/:username', isAuthenticated, async (req, res) => {
     if (follower) {
         isFollowing = 1;
     }
-
+    console.log('User is %s', user.toString());
     if (user) {
-        return res.render('pages/user', {username: req.session.username, userinfo: user, followed: isFollowing});    }
+        return res.render('pages/user/' + theUser.toString(), {username: req.session.username, userinfo: user, followed: isFollowing});    }
     else {
         return res.render('pages/generic', {username: req.session.username, messageH: "User does not exist"});
     }
 });
+
+/*
+app.post("/user/:username", isAuthenticated, async (req, res) => {
+    var theUser = req.body.page_username;
+
+    await db.run(SQL`INSERT INTO User (Username) VALUES (${theUser})`);
+    res.redirect('/user/' + theUser);
+  });
+//not sure if needed, so i'll leave commented out
+  */
 
 app.post("/follow", isAuthenticated, async (req, res) => {
     await db.run(SQL`INSERT INTO Follows VALUES(${req.session.username}, ${req.body.page_username})`);
