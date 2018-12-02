@@ -54,28 +54,21 @@ router.post("/:groupname/unsubscribe", auth.isAuthenticated, async (req, res) =>
 
 router.get('/:groupname', auth.isAuthenticated, async (req, res) => {
     const group = await req.db.get(SQL`SELECT * FROM \`Group\` WHERE LOWER(GroupName) = LOWER(${req.params.groupname})`);
-    const moderator = await req.db.get(SQL`SELECT * FROM Moderates WHERE ModUsername = ${req.session.username} AND LOWER(GroupName) = LOWER(${req.params.groupname})`);
-    // later we will add the group's posts too
 
-    // being a moderator gives you more privileges
-    var isMod = 0;
-    if (moderator) {
-        isMod = 1;
-    }
-
-    // check if user is subscribed or not
-    var isSubscribed = 0;
-    const subscriber = await req.db.get(SQL`SELECT * FROM SubscribedTo WHERE SubscriberUsername = ${req.session.username} AND LOWER(GroupName) = LOWER(${req.params.groupname})`);
-    if (subscriber) {
-        isSubscribed = 1;
-    }
-
-    if (group) {
-        return res.render('pages/group', {username: req.session.username, groupinfo: group, mod: isMod, subscribed: isSubscribed});
-    }
-    else {
+    if (!group) {
         return res.render('pages/generic', {username: req.session.username, messageH: "Group cannot be found"});
     }
+
+    // Get mod status
+    const isMod = !!(await req.db.get(SQL`SELECT * FROM Moderates WHERE ModUsername = ${req.session.username} AND LOWER(GroupName) = LOWER(${req.params.groupname})`));
+
+    // Get subscribed status
+    const isSubscribed = !!(await req.db.get(SQL`SELECT * FROM SubscribedTo WHERE SubscriberUsername = ${req.session.username} AND LOWER(GroupName) = LOWER(${req.params.groupname})`));
+
+    // Get list of posts
+    const posts = await req.db.all(SQL`SELECT * FROM Post WHERE AssociatedGroup = ${req.params.groupname} ORDER BY PostDate DESC LIMIT 10`);
+
+    return res.render('pages/group', {username: req.session.username, groupinfo: group, mod: isMod, subscribed: isSubscribed, posts});
 });
 
 router.get('/:groupname/moderators', auth.isAuthenticated, async (req, res) => {

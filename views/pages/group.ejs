@@ -36,7 +36,12 @@
     <small>Group Home | <a href="/group/<%= locals.groupinfo.GroupName %>/moderators">Moderators</a></small>
 
     <div class="jumbotron pad-jumbo">
-        the group!
+        <% for (const post of locals.posts) { %>
+            <div style="margin-bottom: 10px;">
+                <h4 style="margin-bottom: 0;"><a href="/group/<%= post.PostID %>"><%= post.IsNSFW ? 'NSFW - ' : '' %><%= post.Title %></a><br></h4>
+                <small style="">Posted by <%= post.CreatorUsername %> on <%= post.PostDate %> <%= post.CountryOfOrigin ? ` from ${post.CountryOfOrigin}` : '' %></small>
+            </div>
+        <% } %>
     </div>
 </main>
 
