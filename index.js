@@ -7,7 +7,6 @@ const sqlite = require('sqlite');
 const config = require('./config');
 const session = require('express-session');
 const bodyParser = require('body-parser');
-var path = require('path')
 
 if (!config.session.secret) {
     throw new Error('You must fill in the session secret in the config')
