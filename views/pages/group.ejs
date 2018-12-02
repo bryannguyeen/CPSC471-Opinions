@@ -9,31 +9,31 @@
     <%- include('../partials/header', {user: username}); %>
 </header>
 
+<style>
+    .subscribe-form {
+        float: right;
+        margin-top: 20px;
+    }
+</style>
 <main>
+    <% if (locals.subscribed) { %>
+        <form action="/unsubscribe" method="POST" class="subscribe-form">
+            <input type="hidden" name="groupname" value=<%= locals.groupinfo.GroupName %>>
+            <button>Unsubscribe</button>
+        </form>
+    <% } else { %>
+        <form action="/subscribe" method="POST" class="subscribe-form">
+            <input type="hidden" name="groupname" value=<%= locals.groupinfo.GroupName %>>
+            <button>Subscribe</button>
+        </form>
+    <% } %>
+
     <h1><%= locals.groupinfo.GroupName %></h1>
     <p><%= locals.groupinfo.Description %></p>
     <small>Group Home | <a href="/group/<%= locals.groupinfo.GroupName %>/moderators">Moderators</a></small>
-    <div class="jumbotron">
-        <% if (locals.subscribed) { %>
-            <form action="/unsubscribe" method="POST" align="right">
-                <input type="hidden" name="groupname" value=<%= locals.groupinfo.GroupName %>>
-                <button>Unsubscribe</button>
-            </form>
-        <% } else { %>
-            <form action="/subscribe" method="POST" align="right">
-                <input type="hidden" name="groupname" value=<%= locals.groupinfo.GroupName %>>
-                <button>Subscribe</button>
-            </form>
-        <% } %>
 
+    <div class="jumbotron pad-jumbo">
         the group!
-
-        <% if (locals.mod) { %>
-            <form action="/deletegroup" method="POST" align="right">
-                <input type="hidden" name="groupname" value=<%= locals.groupinfo.GroupName %>>
-                <button>Delete Group</button>
-            </form>
-        <% } %>
     </div>
 </main>
 
