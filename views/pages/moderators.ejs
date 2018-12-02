@@ -27,8 +27,7 @@
             <% if (locals.message) { %>
                 <%= message %>
             <% } %>
-            <form action="/deletegroup" method="POST" style="float: right;">
-                <input type="hidden" name="groupname" value=<%= locals.groupinfo.GroupName %>>
+            <form action="/group/<%= locals.groupinfo.GroupName %>/delete" method="POST" style="float: right;">
                 <button>Delete Group</button>
             </form>
             <form action="/group/<%= locals.groupinfo.GroupName %>/leave" method="POST" style="float: right; margin-right: 20px;">

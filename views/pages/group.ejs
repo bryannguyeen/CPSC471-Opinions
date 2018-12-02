@@ -17,13 +17,11 @@
 </style>
 <main>
     <% if (locals.subscribed) { %>
-        <form action="/unsubscribe" method="POST" class="subscribe-form">
-            <input type="hidden" name="groupname" value=<%= locals.groupinfo.GroupName %>>
+        <form action="/group/<%= locals.groupinfo.GroupName %>/unsubscribe" method="POST" class="subscribe-form">
             <button>Unsubscribe</button>
         </form>
     <% } else { %>
-        <form action="/subscribe" method="POST" class="subscribe-form">
-            <input type="hidden" name="groupname" value=<%= locals.groupinfo.GroupName %>>
+        <form action="/group/<%= locals.groupinfo.GroupName %>/subscribe" method="POST" class="subscribe-form">
             <button>Subscribe</button>
         </form>
     <% } %>

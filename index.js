@@ -41,6 +41,9 @@ async function main() {
     console.log(`Listening on port ${port}: http://localhost:${port}`);
 }
 
+app.use('/group', require('./group'));
+
+
 app.get('/', auth.isAuthenticated, async (req, res) => {
     res.render('pages/index', {username: req.session.username});    // send username for the header to display name
 });
@@ -196,71 +199,6 @@ app.get('/explore', auth.isAuthenticated, async (req, res) => {
     res.render('pages/explore', {username: req.session.username, groups: groupnames});
 });
 
-app.post("/subscribe", auth.isAuthenticated, async (req, res) => {
-    await db.run(SQL`INSERT INTO SubscribedTo VALUES(${req.session.username}, ${req.body.groupname})`);
-
-    res.redirect('/group/' + req.body.groupname);
-});
-
-app.post("/unsubscribe", auth.isAuthenticated, async (req, res) => {
-    await db.run(SQL`DELETE FROM SubscribedTo WHERE SubscriberUsername = ${req.session.username} AND GroupName = ${req.body.groupname}`);
-
-    res.redirect('/group/' + req.body.groupname);
-});
-
-app.use('/group', require('./group'));
-
-app.post("/deletegroup", auth.isAuthenticated, async (req, res) => {
-    await db.run(SQL`DELETE FROM \`Group\` WHERE GroupName = ${req.body.groupname}`);
-
-    // If any users don't have any groups they're moderating anymore after deletion
-    // drop them from the list of moderators.
-    const uselessMods = await db.all(SQL`
-    SELECT * FROM Moderator AS m
-    WHERE NOT EXISTS (
-        SELECT * FROM Moderates
-        WHERE ModUsername = m.ModUsername
-    )`);
-    for (var i = 0; i < uselessMods.length; i++) {
-        await db.run(SQL`DELETE FROM Moderator WHERE ModUsername = ${uselessMods[i].ModUsername}`);
-    }
-    res.redirect('/explore');
-});
-
-app.get('/creategroup', auth.isAuthenticated, async (req, res) => {
-    res.render('pages/creategroup', {username: req.session.username});
-});
-
-app.post("/creategroup", auth.isAuthenticated, async (req, res) => {
-    const groupname = req.body.create_groupname;
-    const description = req.body.create_description;
-
-    if (groupname.length < 1 || groupname.length > 25) {
-        return res.render('pages/creategroup', {username: req.session.username, message: "Group name must be between 1 and 25 characters", name: groupname});
-    }
-    if (/[^A-Za-z0-9\d]/.test(groupname)) {
-        return res.render('pages/creategroup', {username: req.session.username, message: "Only alphanumeric characters allowed in group names", name: groupname});
-    }
-    if (description.length < 1) {
-        return res.render('pages/creategroup', {username: req.session.username, message: "Please add a description to your group", name: groupname});
-    }
-    if (description.length > 5000) {
-        return res.render('pages/creategroup', {username: req.session.username, message: "Description is over 5000 characters", name: groupname});
-    }
-
-    // Check if group already exists
-    const group = await db.get(SQL`SELECT * FROM \`Group\` WHERE LOWER(GroupName) = LOWER(${groupname})`);
-    if (group) {
-        return res.render('pages/creategroup', {username: req.session.username, message: "Group name is taken", name: groupname});
-    }
-
-    // Creator automatically becomes a mod
-    await db.run(SQL`INSERT INTO \`Group\` VALUES(${groupname}, ${description}, ${req.session.username})`);
-    await db.run(SQL`INSERT OR IGNORE INTO Moderator VALUES(${req.session.username})`);
-    await db.run(SQL`INSERT INTO Moderates VALUES(${req.session.username}, ${groupname})`);
-
-    res.redirect("/group/" + groupname);
-});
 
 app.get('/inbox', auth.isAuthenticated, async (req, res) => {
     res.redirect('/inbox/1');
@@ -323,12 +261,6 @@ app.post("/deletemail", auth.isAuthenticated, async (req, res) => {
     await db.run(SQL`DELETE FROM Mail WHERE MailID = ${req.body.mailID}`);
     res.redirect('/inbox/1');
 });
-
-
-
-
-
-
 
 
 
