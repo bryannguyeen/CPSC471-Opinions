@@ -8,6 +8,7 @@ const config = require('./config');
 const session = require('express-session');
 const bodyParser = require('body-parser');
 const SQLiteStore = require('connect-sqlite3')(session);
+const ipApi = require('./ip-api');
 
 if (!config.session.secret) {
     throw new Error('You must fill in the session secret in the config')
@@ -330,22 +331,23 @@ app.get('/group/:groupname/post', isAuthenticated, async (req, res) => {
     if (!group) {
         return res.redirect('/');
     }
-    
+
     res.render('pages/newpost.ejs', {username: req.session.username, groupinfo: group});
 });
 
 app.post('/group/:groupname/post', isAuthenticated, async (req, res) => {
-    // TODO: Placeholder until we have proper countries
-    await db.run(SQL`INSERT OR IGNORE INTO country VALUES ('Canada')`);
-
     const group = await db.get(SQL`SELECT * FROM \`Group\` WHERE LOWER(GroupName) = LOWER(${req.params.groupname})`);
     if (!group) {
         return res.redirect('/');
     }
 
+    const ipInfo = await ipApi.getIpInfo(req.connection.remoteAddress);
+
+    await db.run(SQL`INSERT OR IGNORE INTO country VALUES (${ipInfo.country})`);
+
     await db.run(SQL`INSERT INTO 
         Post(CreatorUsername, AssociatedGroup, LikeCount, Title, Bodytext, IsNFSW, CountryOfOrigin) 
-        VALUES(${req.session.username}, ${req.params.groupname}, 0, ${req.body.title}, ${req.body.body}, ${!!req.body.nsfw}, 'Canada')`);
+        VALUES(${req.session.username}, ${req.params.groupname}, 0, ${req.body.title}, ${req.body.body}, ${!!req.body.nsfw}, ${ipInfo.country})`);
 
     res.redirect('/');
 });
