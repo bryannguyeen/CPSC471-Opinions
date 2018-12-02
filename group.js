@@ -71,6 +71,7 @@ router.get('/:groupname', auth.isAuthenticated, async (req, res) => {
     return res.render('pages/group', {username: req.session.username, groupinfo: group, mod: isMod, subscribed: isSubscribed, posts});
 });
 
+
 router.get('/:groupname/moderators', auth.isAuthenticated, async (req, res) => {
     const group = await req.db.get(SQL`SELECT * FROM \`Group\` WHERE LOWER(GroupName) = LOWER(${req.params.groupname})`);
     const moderator = await req.db.get(SQL`SELECT * FROM Moderates WHERE ModUsername = ${req.session.username} AND LOWER(GroupName) = LOWER(${req.params.groupname})`);
@@ -219,6 +220,28 @@ router.post("/:groupname/delete", auth.isAuthenticated, async (req, res) => {
         await req.db.run(SQL`DELETE FROM Moderator WHERE ModUsername = ${uselessMods[i].ModUsername}`);
     }
     res.redirect('/explore');
+});
+
+router.get('/:groupname/:postId', auth.isAuthenticated, async (req, res) => {
+    const group = await req.db.get(SQL`SELECT * FROM \`Group\` WHERE LOWER(GroupName) = LOWER(${req.params.groupname})`);
+
+    if (!group) {
+        return res.render('pages/generic', {username: req.session.username, messageH: "Group cannot be found"});
+    }
+
+    const post = await req.db.get(SQL`SELECT * FROM Post WHERE PostID = ${req.params.postId}`);
+
+    if (!post) {
+        return res.render('pages/generic', {username: req.session.username, messageH: "Post cannot be found"});
+    }
+
+    // Get mod status
+    const isMod = !!(await req.db.get(SQL`SELECT * FROM Moderates WHERE ModUsername = ${req.session.username} AND LOWER(GroupName) = LOWER(${req.params.groupname})`));
+
+    // Get subscribed status
+    const isSubscribed = !!(await req.db.get(SQL`SELECT * FROM SubscribedTo WHERE SubscriberUsername = ${req.session.username} AND LOWER(GroupName) = LOWER(${req.params.groupname})`));
+
+    return res.render('pages/post', {username: req.session.username, groupinfo: group, mod: isMod, subscribed: isSubscribed, post});
 });
 
 module.exports = router;
