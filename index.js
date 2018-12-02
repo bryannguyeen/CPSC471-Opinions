@@ -332,7 +332,7 @@ app.get('/group/:groupname/post', isAuthenticated, async (req, res) => {
         return res.redirect('/');
     }
 
-    res.render('pages/newpost.ejs', {username: req.session.username, groupinfo: group});
+    res.render('pages/newpost', {username: req.session.username, groupinfo: group});
 });
 
 app.post('/group/:groupname/post', isAuthenticated, async (req, res) => {
@@ -341,13 +341,31 @@ app.post('/group/:groupname/post', isAuthenticated, async (req, res) => {
         return res.redirect('/');
     }
 
+    const title = req.body.title, body = req.body.body, nsfw = !!req.body.nsfw;
+
     const ipInfo = await ipApi.getIpInfo(req.connection.remoteAddress);
+
+    let message;
+
+    if (body.length > 5000) {
+        message = 'Body message is too long, must be at most 5000 chars';
+    } else if (title.length > 25) {
+        message = 'Title is too long, must be at most 25 chars';
+    } else if (title.length <= 3) {
+        message = 'You must have a title with more than 3 characters';
+    } else if (!ipInfo) {
+        message = 'Failed to retrieve info for your country of origin, please try again later';
+    }
+
+    if (message) {
+        return res.render('pages/newpost', {message, title, body, nsfw, username: req.session.username, groupinfo: group});
+    }
 
     await db.run(SQL`INSERT OR IGNORE INTO country VALUES (${ipInfo.country})`);
 
     await db.run(SQL`INSERT INTO 
         Post(CreatorUsername, AssociatedGroup, LikeCount, Title, Bodytext, IsNFSW, CountryOfOrigin) 
-        VALUES(${req.session.username}, ${req.params.groupname}, 0, ${req.body.title}, ${req.body.body}, ${!!req.body.nsfw}, ${ipInfo.country})`);
+        VALUES(${req.session.username}, ${req.params.groupname}, 0, ${title}, ${body}, ${nsfw}, ${ipInfo.country})`);
 
     res.redirect('/');
 });
