@@ -121,7 +121,7 @@ app.post("/signup", async (req, res) => {
     if (username.length < 1 || username.length > 25) {
         return res.render('pages/signup', {message: "Invalid username", name: username});
     }
-    if (/[^A-Za-z\d]/.test(username)) {
+    if (/[^A-Za-z0-9\d]/.test(username)) {
         return res.render('pages/signup', {message: "Only alphanumeric characters allowed in username", name: username});
     }
     if (password.length < 8) {
@@ -350,7 +350,7 @@ app.post("/creategroup", isAuthenticated, async (req, res) => {
     if (groupname.length < 1 || groupname.length > 25) {
         return res.render('pages/creategroup', {username: req.session.username, message: "Group name must be between 1 and 25 characters", name: groupname});
     }
-    if (/[^A-Za-z\d]/.test(groupname)) {
+    if (/[^A-Za-z0-9\d]/.test(groupname)) {
         return res.render('pages/creategroup', {username: req.session.username, message: "Only alphanumeric characters allowed in group names", name: groupname});
     }
     if (description.length < 1) {
