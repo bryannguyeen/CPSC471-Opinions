@@ -8,7 +8,7 @@ const config = require('./config');
 const session = require('express-session');
 const bodyParser = require('body-parser');
 const SQLiteStore = require('connect-sqlite3')(session);
-const ipApi = require('./ip-api');
+const auth = require('./auth');
 
 if (!config.session.secret) {
     throw new Error('You must fill in the session secret in the config')
@@ -23,16 +23,12 @@ app.use(session(Object.assign({
     saveUninitialized: true,
 }, config.session)));
 
-const isAuthenticated = function(req, res, next) {
-    // Redirect to login if they aren't logged in
-    if (!req.session.username) {
-        res.redirect('/login');
-    } else {
-        next();
-    }
-};
-
 let db;
+
+app.use(function (req, res, next) {
+    req.db = db;
+    next();
+});
 
 async function main() {
     const port = process.env.PORT || 3000;
@@ -45,16 +41,16 @@ async function main() {
     console.log(`Listening on port ${port}: http://localhost:${port}`);
 }
 
-app.get('/', isAuthenticated, async (req, res) => {
+app.get('/', auth.isAuthenticated, async (req, res) => {
     res.render('pages/index', {username: req.session.username});    // send username for the header to display name
 });
 
-app.get('/settings', isAuthenticated, async (req, res, next) => {
+app.get('/settings', auth.isAuthenticated, async (req, res, next) => {
     const settings = await db.get(SQL`SELECT * FROM UserSettings WHERE Username = ${req.session.username}`);
     res.render('pages/settings', {username: req.session.username, flag: settings && settings.HideNSFW});
 });
 
-app.post("/settings", isAuthenticated, async (req, res) => {
+app.post("/settings", auth.isAuthenticated, async (req, res) => {
     // Note: Boolean("false") -> True, we must do this comparison
     const newHideNsfw = req.body.hideNSFW === "on";
     console.log(newHideNsfw);
@@ -63,7 +59,7 @@ app.post("/settings", isAuthenticated, async (req, res) => {
     res.redirect('/');
 });
 
-app.post("/deleteaccount", isAuthenticated, async (req, res) => {
+app.post("/deleteaccount", auth.isAuthenticated, async (req, res) => {
     // make sure mods can't delete account
     const moderator = await db.get(SQL`SELECT * FROM Moderator WHERE ModUsername = ${req.session.username}`);
 
@@ -144,7 +140,7 @@ app.post("/signup", async (req, res) => {
     res.redirect("/");
 });
 
-app.get('/user/:username', isAuthenticated, async (req, res) => {
+app.get('/user/:username', auth.isAuthenticated, async (req, res) => {
     // check if user exists
     var theUser = req.params.username;
     console.log('Username is %s', theUser);
@@ -174,7 +170,7 @@ app.get('/user/:username', isAuthenticated, async (req, res) => {
 });
 
 /*
-app.post("/user/:username", isAuthenticated, async (req, res) => {
+app.post("/user/:username", auth.isAuthenticated, async (req, res) => {
     var theUser = req.body.page_username;
 
     await db.run(SQL`INSERT INTO User (Username) VALUES (${theUser})`);
@@ -183,195 +179,38 @@ app.post("/user/:username", isAuthenticated, async (req, res) => {
 //not sure if needed, so i'll leave commented out
   */
 
-app.post("/follow", isAuthenticated, async (req, res) => {
+app.post("/follow", auth.isAuthenticated, async (req, res) => {
     await db.run(SQL`INSERT INTO Follows VALUES(${req.session.username}, ${req.body.page_username})`);
 
     res.redirect('/user/' + req.body.page_username);
 });
 
-app.post("/unfollow", isAuthenticated, async (req, res) => {
+app.post("/unfollow", auth.isAuthenticated, async (req, res) => {
     await db.run(SQL`DELETE FROM Follows WHERE Follower = ${req.session.username} AND Followee = ${req.body.page_username}`);
 
     res.redirect('/user/' + req.body.page_username);
 });
 
-app.get('/explore', isAuthenticated, async (req, res) => {
+app.get('/explore', auth.isAuthenticated, async (req, res) => {
     const groupnames = await db.all(SQL`SELECT GroupName FROM \`Group\``);
     res.render('pages/explore', {username: req.session.username, groups: groupnames});
 });
 
-app.get('/group/:groupname', isAuthenticated, async (req, res) => {
-    const group = await db.get(SQL`SELECT * FROM \`Group\` WHERE LOWER(GroupName) = LOWER(${req.params.groupname})`);
-    const moderator = await db.get(SQL`SELECT * FROM Moderates WHERE ModUsername = ${req.session.username} AND LOWER(GroupName) = LOWER(${req.params.groupname})`);
-    // later we will add the group's posts too
-
-    // being a moderator gives you more privileges
-    var isMod = 0;
-    if (moderator) {
-        isMod = 1;
-    }
-
-    // check if user is subscribed or not
-    var isSubscribed = 0;
-    const subscriber = await db.get(SQL`SELECT * FROM SubscribedTo WHERE SubscriberUsername = ${req.session.username} AND LOWER(GroupName) = LOWER(${req.params.groupname})`);
-    if (subscriber) {
-        isSubscribed = 1;
-    }
-
-    if (group) {
-        return res.render('pages/group', {username: req.session.username, groupinfo: group, mod: isMod, subscribed: isSubscribed});
-    }
-    else {
-        return res.render('pages/generic', {username: req.session.username, messageH: "Group cannot be found"});
-    }
-});
-
-app.post("/subscribe", isAuthenticated, async (req, res) => {
+app.post("/subscribe", auth.isAuthenticated, async (req, res) => {
     await db.run(SQL`INSERT INTO SubscribedTo VALUES(${req.session.username}, ${req.body.groupname})`);
 
     res.redirect('/group/' + req.body.groupname);
 });
 
-app.post("/unsubscribe", isAuthenticated, async (req, res) => {
+app.post("/unsubscribe", auth.isAuthenticated, async (req, res) => {
     await db.run(SQL`DELETE FROM SubscribedTo WHERE SubscriberUsername = ${req.session.username} AND GroupName = ${req.body.groupname}`);
 
     res.redirect('/group/' + req.body.groupname);
 });
 
-app.get('/group/:groupname/moderators', isAuthenticated, async (req, res) => {
-    const group = await db.get(SQL`SELECT * FROM \`Group\` WHERE LOWER(GroupName) = LOWER(${req.params.groupname})`);
-    const moderator = await db.get(SQL`SELECT * FROM Moderates WHERE ModUsername = ${req.session.username} AND LOWER(GroupName) = LOWER(${req.params.groupname})`);
-    const groupmods = await db.all(SQL`SELECT * FROM Moderates WHERE LOWER(GroupName) = LOWER(${req.params.groupname})`);
+app.use('/group', require('./group'));
 
-    // being a moderator gives you more privileges
-    var isMod = 0;
-    if (moderator) {
-        isMod = 1;
-    }
-    if (group) {
-        return res.render('pages/moderators', {username: req.session.username, groupinfo: group, mod: isMod, modsinfo: groupmods});
-    }
-    else {
-        return res.render('pages/generic', {username: req.session.username, messageH: "Group cannot be found"});
-    }
-});
-
-app.post('/group/:groupname/moderators', isAuthenticated, async (req, res) => {
-    const newMod = req.body.add_moderator;
-
-    const group = await db.get(SQL`SELECT * FROM \`Group\` WHERE LOWER(GroupName) = LOWER(${req.params.groupname})`);
-    const moderator = await db.get(SQL`SELECT * FROM Moderates WHERE ModUsername = ${req.session.username} AND LOWER(GroupName) = LOWER(${req.params.groupname})`);
-    var groupmods = await db.all(SQL`SELECT * FROM Moderates WHERE LOWER(GroupName) = LOWER(${req.params.groupname})`);
-
-    // being a moderator gives you more privileges
-    var isMod = 0;
-    if (moderator) {
-        isMod = 1;
-    }
-
-    // Check if user exists
-    const user = await db.get(SQL`SELECT * FROM User WHERE LOWER(Username) = LOWER(${newMod})`);
-
-    // Check if user is already a mod
-    const alreadyMod = await db.get(SQL`SELECT * FROM Moderates WHERE LOWER(ModUsername) = LOWER(${newMod}) AND LOWER(GroupName) = LOWER(${req.params.groupname})`);
-
-    if (user) {
-        if (!alreadyMod) {
-            await db.run(SQL`INSERT INTO Moderates VALUES(${user.Username}, ${req.params.groupname})`);
-            groupmods = await db.all(SQL`SELECT * FROM Moderates WHERE LOWER(GroupName) = LOWER(${req.params.groupname})`);
-            return res.render('pages/moderators', {username: req.session.username, groupinfo: group, mod: isMod, modsinfo: groupmods,
-                message: user.Username + " has been added"});
-        }
-        else {
-            return res.render('pages/moderators', {username: req.session.username, groupinfo: group, mod: isMod, modsinfo: groupmods,
-                message: user.Username + " is already a moderator"});
-        }
-    }
-    else {
-        return res.render('pages/moderators', {username: req.session.username, groupinfo: group, mod: isMod, modsinfo: groupmods,
-            message: "User does not exist"});
-    }
-});
-
-app.post('/group/:groupname/leave', isAuthenticated, async (req, res) => {
-    const group = await db.get(SQL`SELECT * FROM \`Group\` WHERE LOWER(GroupName) = LOWER(${req.params.groupname})`);
-    const moderator = await db.get(SQL`SELECT * FROM Moderates WHERE ModUsername = ${req.session.username} AND LOWER(GroupName) = LOWER(${req.params.groupname})`);
-    const groupmods = await db.all(SQL`SELECT * FROM Moderates WHERE LOWER(GroupName) = LOWER(${req.params.groupname})`);
-
-    // being a moderator gives you more privileges
-    var isMod = 0;
-    if (moderator) {
-        isMod = 1;
-    }
-
-    if (groupmods.length > 1) {
-        await db.run(SQL`DELETE FROM Moderates WHERE ModUsername = ${req.session.username} AND LOWER(GroupName) = LOWER(${req.params.groupname})`);
-
-        // if user isn't moderating anything anymore delete them from moderators
-        const moderating = await db.get(SQL`
-            SELECT * FROM Moderates
-            WHERE ModUsername = ${req.session.username}`);
-        if (!moderating) {
-            await db.run(SQL`DELETE FROM Moderator WHERE ModUsername = ${req.session.username}`);
-        }
-        res.redirect('/group/' + req.params.groupname + '/moderators');
-        res.end()
-    }
-    else {
-        return res.render('pages/moderators', {username: req.session.username, groupinfo: group, mod: isMod, modsinfo: groupmods,
-            message2: "Cannot leave as you are the only moderator"});
-    }
-});
-
-app.get('/group/:groupname/post', isAuthenticated, async (req, res) => {
-    const newMod = req.body.add_moderator;
-
-    const group = await db.get(SQL`SELECT * FROM \`Group\` WHERE LOWER(GroupName) = LOWER(${req.params.groupname})`);
-
-    if (!group) {
-        return res.redirect('/');
-    }
-
-    res.render('pages/newpost', {username: req.session.username, groupinfo: group});
-});
-
-app.post('/group/:groupname/post', isAuthenticated, async (req, res) => {
-    const group = await db.get(SQL`SELECT * FROM \`Group\` WHERE LOWER(GroupName) = LOWER(${req.params.groupname})`);
-    if (!group) {
-        return res.redirect('/');
-    }
-
-    const title = req.body.title, body = req.body.body, nsfw = !!req.body.nsfw;
-
-    const ipInfo = await ipApi.getIpInfo(req.connection.remoteAddress);
-
-    let message;
-
-    if (body.length > 5000) {
-        message = 'Body message is too long, must be at most 5000 chars';
-    } else if (title.length > 25) {
-        message = 'Title is too long, must be at most 25 chars';
-    } else if (title.length <= 3) {
-        message = 'You must have a title with more than 3 characters';
-    } else if (!ipInfo) {
-        message = 'Failed to retrieve info for your country of origin, please try again later';
-    }
-
-    if (message) {
-        return res.render('pages/newpost', {message, title, body, nsfw, username: req.session.username, groupinfo: group});
-    }
-
-    await db.run(SQL`INSERT OR IGNORE INTO country VALUES (${ipInfo.country})`);
-
-    await db.run(SQL`INSERT INTO 
-        Post(CreatorUsername, AssociatedGroup, LikeCount, Title, Bodytext, IsNFSW, CountryOfOrigin) 
-        VALUES(${req.session.username}, ${req.params.groupname}, 0, ${title}, ${body}, ${nsfw}, ${ipInfo.country})`);
-
-    res.redirect('/');
-});
-
-
-app.post("/deletegroup", isAuthenticated, async (req, res) => {
+app.post("/deletegroup", auth.isAuthenticated, async (req, res) => {
     await db.run(SQL`DELETE FROM \`Group\` WHERE GroupName = ${req.body.groupname}`);
 
     // If any users don't have any groups they're moderating anymore after deletion
@@ -388,11 +227,11 @@ app.post("/deletegroup", isAuthenticated, async (req, res) => {
     res.redirect('/explore');
 });
 
-app.get('/creategroup', isAuthenticated, async (req, res) => {
+app.get('/creategroup', auth.isAuthenticated, async (req, res) => {
     res.render('pages/creategroup', {username: req.session.username});
 });
 
-app.post("/creategroup", isAuthenticated, async (req, res) => {
+app.post("/creategroup", auth.isAuthenticated, async (req, res) => {
     const groupname = req.body.create_groupname;
     const description = req.body.create_description;
 
@@ -423,11 +262,11 @@ app.post("/creategroup", isAuthenticated, async (req, res) => {
     res.redirect("/group/" + groupname);
 });
 
-app.get('/inbox', isAuthenticated, async (req, res) => {
+app.get('/inbox', auth.isAuthenticated, async (req, res) => {
     res.redirect('/inbox/1');
 });
 
-app.get('/inbox/:pageNo', isAuthenticated, async (req, res) => {
+app.get('/inbox/:pageNo', auth.isAuthenticated, async (req, res) => {
     const offset = (Number(req.params.pageNo) - 1) * 10;
     const countMail = await db.get(SQL`SELECT COUNT(*) as count FROM Mail WHERE Receiver = ${req.session.username}`)
     const numPages = Math.ceil(parseFloat(countMail.count) / 10)
@@ -436,11 +275,11 @@ app.get('/inbox/:pageNo', isAuthenticated, async (req, res) => {
     res.render('pages/inbox', {username: req.session.username, mailpile: mail, page: req.params.pageNo, totalPages: numPages});
 });
 
-app.get('/compose', isAuthenticated, async (req, res) => {
+app.get('/compose', auth.isAuthenticated, async (req, res) => {
     res.render('pages/compose', {username: req.session.username, recipient: req.query.sendto});
 });
 
-app.post("/compose", isAuthenticated, async (req, res) => {
+app.post("/compose", auth.isAuthenticated, async (req, res) => {
     const recipient = req.body.recipient;
     const subject = req.body.subject;
     const message_body = req.body.message_body;
@@ -466,7 +305,7 @@ app.post("/compose", isAuthenticated, async (req, res) => {
     }
 });
 
-app.get('/mail/:id', isAuthenticated, async (req, res) => {
+app.get('/mail/:id', auth.isAuthenticated, async (req, res) => {
     const mailID = req.params.id;
     // Check if mail exists and belongs to the user that is signed in
     const mail = await db.get(SQL`SELECT * FROM Mail WHERE Receiver = ${req.session.username} AND MailID = ${mailID}`);
@@ -480,7 +319,7 @@ app.get('/mail/:id', isAuthenticated, async (req, res) => {
 
 });
 
-app.post("/deletemail", isAuthenticated, async (req, res) => {
+app.post("/deletemail", auth.isAuthenticated, async (req, res) => {
     await db.run(SQL`DELETE FROM Mail WHERE MailID = ${req.body.mailID}`);
     res.redirect('/inbox/1');
 });
