@@ -28,17 +28,17 @@
         </form>
     <% } %>
 
-
-    <form action="/group/<%= locals.groupinfo.GroupName %>/post" style="float: right; margin: 20px 20px 0 0;">
-        <button>New Post</button>
-    </form>
-
     <h1><%= locals.groupinfo.GroupName %></h1>
     <p><%= locals.groupinfo.Description %></p>
-    <small>Group Home | <a href="/group/<%= locals.groupinfo.GroupName %>/moderators">Moderators</a></small>
+    <small>New Post | <a href="/group/<%= locals.groupinfo.GroupName %>/moderators">Moderators</a></small>
 
     <div class="jumbotron pad-jumbo">
-        the group!
+        <form action="/group/<%= locals.groupinfo.GroupName %>/post" method="POST">
+            <h3><input placeholder="Title" name="title"></h3>
+            <textarea rows="4" cols="75" placeholder="Body (Max 5000 Characters)" name="body"></textarea><br/>
+            <input type="checkbox" name="nsfw" value="true"> NSFW (Not Suitable for Work)<br><br>
+            <button>Create Post</button>
+        </form>
     </div>
 </main>
 

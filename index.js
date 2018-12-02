@@ -322,6 +322,35 @@ app.post('/group/:groupname/leave', isAuthenticated, async (req, res) => {
     }
 });
 
+app.get('/group/:groupname/post', isAuthenticated, async (req, res) => {
+    const newMod = req.body.add_moderator;
+
+    const group = await db.get(SQL`SELECT * FROM \`Group\` WHERE LOWER(GroupName) = LOWER(${req.params.groupname})`);
+
+    if (!group) {
+        return res.redirect('/');
+    }
+    
+    res.render('pages/newpost.ejs', {username: req.session.username, groupinfo: group});
+});
+
+app.post('/group/:groupname/post', isAuthenticated, async (req, res) => {
+    // TODO: Placeholder until we have proper countries
+    await db.run(SQL`INSERT OR IGNORE INTO country VALUES ('Canada')`);
+
+    const group = await db.get(SQL`SELECT * FROM \`Group\` WHERE LOWER(GroupName) = LOWER(${req.params.groupname})`);
+    if (!group) {
+        return res.redirect('/');
+    }
+
+    await db.run(SQL`INSERT INTO 
+        Post(CreatorUsername, AssociatedGroup, LikeCount, Title, Bodytext, IsNFSW, CountryOfOrigin) 
+        VALUES(${req.session.username}, ${req.params.groupname}, 0, ${req.body.title}, ${req.body.body}, ${!!req.body.nsfw}, 'Canada')`);
+
+    res.redirect('/');
+});
+
+
 app.post("/deletegroup", isAuthenticated, async (req, res) => {
     await db.run(SQL`DELETE FROM \`Group\` WHERE GroupName = ${req.body.groupname}`);
 
@@ -435,6 +464,8 @@ app.post("/deletemail", isAuthenticated, async (req, res) => {
     await db.run(SQL`DELETE FROM Mail WHERE MailID = ${req.body.mailID}`);
     res.redirect('/inbox/1');
 });
+
+
 
 
 
