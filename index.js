@@ -7,6 +7,7 @@ const sqlite = require('sqlite');
 const config = require('./config');
 const session = require('express-session');
 const bodyParser = require('body-parser');
+const SQLiteStore = require('connect-sqlite3')(session);
 
 if (!config.session.secret) {
     throw new Error('You must fill in the session secret in the config')
@@ -16,6 +17,7 @@ const app = express();
 app.use(bodyParser.urlencoded({extended: false}));
 app.set('view engine', 'ejs');
 app.use(session(Object.assign({
+    store: new SQLiteStore(),
     resave: false,
     saveUninitialized: true,
 }, config.session)));

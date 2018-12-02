@@ -21,6 +21,7 @@
     "bcrypt": "^3.0.2",
     "bluebird": "^3.5.3",
     "body-parser": "^1.18.3",
+    "connect-sqlite3": "^0.9.11",
     "ejs": "^2.6.1",
     "express": "^4.16.4",
     "express-session": "^1.15.6",
