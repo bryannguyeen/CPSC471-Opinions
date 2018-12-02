@@ -45,7 +45,16 @@ app.use('/group', require('./group'));
 
 
 app.get('/', auth.isAuthenticated, async (req, res) => {
-    res.render('pages/index', {username: req.session.username});    // send username for the header to display name
+    // Get 10 most recent posts from groups the user is subscribed to
+    const posts = await req.db.all(SQL`
+            SELECT * FROM Post WHERE 
+                EXISTS(SELECT * FROM SubscribedTo 
+                        WHERE SubscriberUsername = ${req.session.username} 
+                              AND GroupName = AssociatedGroup
+                      )
+                ORDER BY PostDate DESC LIMIT 10`);
+
+    res.render('pages/index', {username: req.session.username, posts});
 });
 
 app.get('/settings', auth.isAuthenticated, async (req, res, next) => {
