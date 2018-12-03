@@ -41,7 +41,7 @@
                 <a href="#" class="pvote" type="-1">-</a>
                 <span class="like-count"><%= post.LikeCount %></span>
                 <a href="#" class="pvote" type="1">+</a>
-                Points <br> Posted by <%= post.CreatorUsername %> on <%= post.PostDate %> <%= post.CountryOfOrigin ? ` from ${post.CountryOfOrigin}` : '' %>
+                Points - Posted by <%= post.CreatorUsername %> on <%= post.PostDate %> <%= post.CountryOfOrigin ? ` from ${post.CountryOfOrigin}` : '' %>
             </span>
         </h6>
         <h3><%= post.IsNSFW ? 'NSFW - ' : '' %><%= post.Title %></h3>
