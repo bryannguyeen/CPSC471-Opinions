@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <% include ../partials/head %>
+</head>
+<body class="container">
+
+<header>
+    <%- include('../partials/header', {user: username}); %>
+</header>
+
+<style>
+    .subscribe-form {
+        float: right;
+        margin-top: 20px;
+    }
+</style>
+<main>
+    <% if (locals.subscribed) { %>
+        <form action="/unsubscribe" method="POST" class="subscribe-form">
+            <input type="hidden" name="groupname" value=<%= locals.groupinfo.GroupName %>>
+            <button>Unsubscribe</button>
+        </form>
+    <% } else { %>
+        <form action="/subscribe" method="POST" class="subscribe-form">
+            <input type="hidden" name="groupname" value=<%= locals.groupinfo.GroupName %>>
+            <button>Subscribe</button>
+        </form>
+    <% } %>
+
+    <h1><%= locals.groupinfo.GroupName %></h1>
+    <p><%= locals.groupinfo.Description %></p>
+    <small>New Post | <a href="/group/<%= locals.groupinfo.GroupName %>/moderators">Moderators</a></small>
+
+    <div class="jumbotron pad-jumbo">
+        <% if (locals.message) { %>
+            <h4><%= message %></h4>
+        <% } %>
+        <form action="/group/<%= locals.groupinfo.GroupName %>/post" method="POST">
+            <h3><input placeholder="Title" name="title" value=<%= locals.title %>></h3>
+            <textarea rows="4" cols="75" placeholder="Body (Max 5000 Characters)" name="body" value=<%= locals.body %>></textarea><br/>
+            <input type="checkbox" name="nsfw" value="true" <%= locals.nsfw ? 'checked' : '' %>> NSFW (Not Suitable for Work)<br><br>
+            <button>Create Post</button>
+        </form>
+    </div>
+</main>
+
+</body>
+</html>

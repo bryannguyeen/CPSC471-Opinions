@@ -13,7 +13,7 @@
     <h1><%= locals.groupinfo.GroupName %></h1>
     <%= locals.groupinfo.Description %><br>
     <small><a href="/group/<%= locals.groupinfo.GroupName %>">Group Home</a> | Moderators</small>
-    <div class="jumbotron">
+    <div class="jumbotron pad-jumbo">
         <ul>
         <% for (var i=0; i < locals.modsinfo.length; i++) { %>
             <li><%= locals.modsinfo[i].ModUsername %></li>
@@ -27,12 +27,17 @@
             <% if (locals.message) { %>
                 <%= message %>
             <% } %>
-            <form action="/group/<%= locals.groupinfo.GroupName %>/leave" method="POST" align="right">
+            <form action="/group/<%= locals.groupinfo.GroupName %>/delete" method="POST" style="float: right;">
+                <button>Delete Group</button>
+            </form>
+            <form action="/group/<%= locals.groupinfo.GroupName %>/leave" method="POST" style="float: right; margin-right: 20px;">
                 <button>Leave as moderator</button>
             </form>
             <% if (locals.message2) { %>
                 <p align=right><%= message2 %></p>
             <% } %>
+
+            <div style="clear: both;"></div>
         <% } %>
     </div>
 </main>
