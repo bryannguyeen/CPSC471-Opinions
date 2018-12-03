@@ -178,9 +178,13 @@ router.post('/:groupname/post', auth.isAuthenticated, async (req, res) => {
 
     await req.db.run(SQL`INSERT OR IGNORE INTO country VALUES (${ipInfo.country})`);
 
-    await req.db.run(SQL`INSERT INTO 
+    const post = await req.db.run(SQL`INSERT INTO 
         Post(CreatorUsername, AssociatedGroup, LikeCount, Title, Bodytext, IsNFSW, CountryOfOrigin) 
-        VALUES(${req.session.username}, ${req.params.groupname}, 0, ${title}, ${body}, ${nsfw}, ${ipInfo.country})`);
+        VALUES(${req.session.username}, ${req.params.groupname}, 1, ${title}, ${body}, ${nsfw}, ${ipInfo.country})`);
+
+    // Automatically upvote their own post
+    await req.db.run(SQL`INSERT INTO PostVote (AssociatedPost, VoterUsername, Type) 
+                             VALUES (${post.lastID}, ${req.session.username}, 1)`);
 
     res.redirect(`/group/${req.params.groupname}`);
 });
@@ -222,7 +226,7 @@ router.post('/:groupname/:postId/comment', auth.isAuthenticated, async (req, res
         Comment(BodyText, CreatorUsername, AssociatedPost, LikeCount) 
         VALUES(${req.body.body}, ${req.session.username}, ${req.post.PostID}, 1)`);
 
-    // Automatically upvote their own post
+    // Automatically upvote their own comment
     await req.db.run(SQL`INSERT INTO CommentVote (AssociatedComment, VoterUsername, Type) 
                              VALUES (${comment.lastID}, ${req.session.username}, 1)`);
 
