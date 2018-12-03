@@ -208,7 +208,7 @@ router.get('/:groupname/:postId', auth.isAuthenticated, async (req, res) => {
             SELECT *, (SELECT Type FROM CommentVote 
                             WHERE AssociatedComment = CommentID AND VoterUsername = ${req.session.username}
                       ) AS MyVote
-            FROM Comment WHERE AssociatedPost = ${req.post.PostID} ORDER BY PostDate DESC`);
+            FROM Comment WHERE AssociatedPost = ${req.post.PostID} ORDER BY LikeCount DESC`);
 
     return res.render('pages/post', {username: req.session.username, groupinfo: req.group, mod: req.isMod, subscribed: req.isSubscribed, post: req.post, comments});
 });
