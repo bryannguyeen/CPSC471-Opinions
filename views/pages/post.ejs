@@ -36,10 +36,16 @@
     <small>Group Home | <a href="/group/<%= locals.groupinfo.GroupName %>/moderators">Moderators</a></small>
 
     <div class="jumbotron pad-jumbo">
+        <h6 id="post_<%= post.PostID %>" group="<%= post.AssociatedGroup %>">
+            <span myVote="<%= post.MyVote %>">
+                <a href="#" class="pvote" type="-1">-</a>
+                <span class="like-count"><%= post.LikeCount %></span>
+                <a href="#" class="pvote" type="1">+</a>
+                Points <br> Posted by <%= post.CreatorUsername %> <%= post.CountryOfOrigin ? ` from ${post.CountryOfOrigin}` : '' %> on <%= post.PostDate %>
+            </span>
+        </h6>
         <h3><%= post.IsNSFW ? 'NSFW - ' : '' %><%= post.Title %></h3>
-        <div style="width: 100%; max-width: 600px; white-space: pre-wrap;">
-            <%= post.Bodytext %>
-        </div>
+        <div style="width: 100%; max-width: 600px; white-space: pre-wrap;"><%= post.Bodytext %></div>
         <hr/>
         <form action="/group/<%= locals.groupinfo.GroupName %>/<%= post.PostID %>/comment" method="POST">
             <textarea rows="4" cols="75" placeholder=" What are your thoughts?" name="body" maxlength="2000" value=<%= locals.commentBody %>></textarea><br/>
@@ -54,9 +60,9 @@
             <% for (const comment of comments) { %>
                 <div style="margin-bottom: 10px;" id="comment_<%= comment.CommentID %>">
                     <span style="font-size: 14px;" myVote="<%= comment.MyVote %>">
-                        <a href="#" class="vote" type="-1">-</a>
+                        <a href="#" class="cvote" type="-1">-</a>
                         <span class="like-count"><%= comment.LikeCount %></span>
-                        <a href="#" class="vote" type="1">+</a>
+                        <a href="#" class="cvote" type="1">+</a>
                         Points - <%= comment.CreatorUsername %> - <%= comment.PostDate %>
                     </span><br>
                     <span style="font-size: 16px;"><%= comment.BodyText %></span>
@@ -67,7 +73,19 @@
 </main>
 
 <script>
-    $('.vote').click(function () {
+    function vote(resource, id, type, cb) {
+        $.ajax({
+            type: 'POST',
+            url: `/${resource}/${id}/vote`,
+            data: JSON.stringify({type}),
+            contentType: 'application/json; charset=utf-8',
+            dataType: "json",
+            success: (data) => { cb(data); },
+            failure: (e) => { alert(e.msg); }
+        });
+    }
+
+    $('.cvote').click(function () {
         let type = parseInt($(this).attr('type'));
         const myVote = parseInt($(this).parent().attr('myVote'));
         const commentId = parseInt($(this).parent().parent().attr('id').split('_')[1]);
@@ -78,19 +96,30 @@
             type = 0;
         }
 
-        $.ajax({
-            type: 'POST',
-            url: `/comment/${commentId}/vote`,
-            data: JSON.stringify({type}),
-            contentType: 'application/json; charset=utf-8',
-            dataType: "json",
-            success: (data) => {
-                $(this).parent().attr('myVote', type);
-                $(this).parent().find('.like-count').text(likeCount + data.offset);
-            },
-            failure: (e) => { alert(e.msg) }
+        vote('comment', commentId, type, (data) => {
+            $(this).parent().attr('myVote', type);
+            $(this).parent().find('.like-count').text(likeCount + data.offset);
         });
     });
+
+    $('.pvote').click(function () {
+        let type = parseInt($(this).attr('type'));
+        const myVote = parseInt($(this).parent().attr('myVote'));
+        const postId = parseInt($(this).parent().parent().attr('id').split('_')[1]);
+        const likeCount = parseInt($(this).parent().find('.like-count').text());
+        const group =$(this).parent().parent().attr('group');
+
+        if (type === myVote) {
+            // negate the vote
+            type = 0;
+        }
+
+        vote(`group/${group}`, postId, type, (data) => {
+            $(this).parent().attr('myVote', type);
+            $(this).parent().find('.like-count').text(likeCount + data.offset);
+        });
+    });
+
 </script>
 </body>
 </html>

@@ -24,7 +24,11 @@ router.param('groupname', async function(req, res, next, groupname) {
 });
 
 router.param('postId', async function(req, res, next, postId) {
-    const post = await req.db.get(SQL`SELECT * FROM Post WHERE PostID = ${postId}`);
+    const post = await req.db.get(SQL`
+            SELECT *, (SELECT Type FROM PostVote 
+                            WHERE AssociatedPost = PostID AND VoterUsername = ${req.session.username}
+                      ) AS MyVote
+            FROM Post WHERE PostID = ${postId}`);
 
     if (!post) {
         return res.render('pages/generic', {username: req.session.username, messageH: "Post cannot be found"});
