@@ -52,8 +52,13 @@
             <h5>There aren't any comments to show you :(</h5>
         <% } else {%>
             <% for (const comment of comments) { %>
-                <div style="margin-bottom: 10px;">
-                    <span style="font-size: 14px;"><%= comment.CreatorUsername %> - <%= comment.PostDate %></span><br>
+                <div style="margin-bottom: 10px;" id="comment_<%= comment.CommentID %>">
+                    <span style="font-size: 14px;" myVote="<%= comment.MyVote %>">
+                        <a href="#" class="vote" type="-1">-</a>
+                        <span class="like-count"><%= comment.LikeCount %></span>
+                        <a href="#" class="vote" type="1">+</a>
+                        Points - <%= comment.CreatorUsername %> - <%= comment.PostDate %>
+                    </span><br>
                     <span style="font-size: 16px;"><%= comment.BodyText %></span>
                 </div>
             <% } %>
@@ -61,5 +66,31 @@
     </div>
 </main>
 
+<script>
+    $('.vote').click(function () {
+        let type = parseInt($(this).attr('type'));
+        const myVote = parseInt($(this).parent().attr('myVote'));
+        const commentId = parseInt($(this).parent().parent().attr('id').split('_')[1]);
+        const likeCount = parseInt($(this).parent().find('.like-count').text());
+
+        if (type === myVote) {
+            // negate the vote
+            type = 0;
+        }
+
+        $.ajax({
+            type: 'POST',
+            url: `/comment/${commentId}/vote`,
+            data: JSON.stringify({type}),
+            contentType: 'application/json; charset=utf-8',
+            dataType: "json",
+            success: (data) => {
+                $(this).parent().attr('myVote', type);
+                $(this).parent().find('.like-count').text(likeCount + data.offset);
+            },
+            failure: (e) => { alert(e.msg) }
+        });
+    });
+</script>
 </body>
 </html>

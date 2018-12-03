@@ -17,7 +17,7 @@ CREATE TABLE `comment` (
   `BodyText` varchar(2000) NOT NULL,
   `LikeCount` int(11) NOT NULL,
   `IsNSFW` tinyint(1) DEFAULT '0',
-  `PostDate` date NOT NULL,
+  `PostDate` date DEFAULT (datetime('now','localtime')),
   `CreatorUsername` varchar(25) DEFAULT NULL,
   `AssociatedPost` int(11) NOT NULL,
   PRIMARY KEY (`CommentID`),

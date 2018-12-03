@@ -283,10 +283,8 @@ app.post('/comment/:id/vote', auth.isAuthenticated, async (req, res) => {
     const vote = await req.db.get(SQL`SELECT * FROM commentvote WHERE AssociatedComment = ${req.params.id} AND VoterUsername = ${req.session.username}`);
 
     // Update the vote type or insert it if it doesn't exist
-    await req.db.run(SQL`INSERT OR IGNORE INTO CommentVote (AssociatedComment, VoterUsername, Type) 
-                             VALUES (${req.params.id}, ${req.session.username}, ${type})
-                         UPDATE CommentVote SET Type = ${type} 
-                             WHERE AssociatedComment = ${req.params.id} AND VoterUsername = ${req.session.username}`);
+    await req.db.run(SQL`INSERT OR REPLACE INTO CommentVote (AssociatedComment, VoterUsername, Type) 
+                             VALUES (${req.params.id}, ${req.session.username}, ${type})`);
 
 
     // Figure out what the new total like amount is
@@ -301,7 +299,7 @@ app.post('/comment/:id/vote', auth.isAuthenticated, async (req, res) => {
 
     await req.db.run(SQL`UPDATE Comment SET LikeCount = LikeCount + ${offset} WHERE CommentID = ${req.params.id}`);
 
-    res.json({msg: "Successfully voted!"});
+    res.json({msg: "Successfully voted!", offset});
 });
 
 

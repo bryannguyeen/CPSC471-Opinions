@@ -200,7 +200,11 @@ router.post("/:groupname/delete", auth.isAuthenticated, async (req, res) => {
 });
 
 router.get('/:groupname/:postId', auth.isAuthenticated, async (req, res) => {
-    const comments = await req.db.all(SQL`SELECT * FROM Comment WHERE AssociatedPost = ${req.post.PostID} ORDER BY PostDate DESC`);
+    const comments = await req.db.all(SQL`
+            SELECT *, (SELECT Type FROM CommentVote 
+                            WHERE AssociatedComment = CommentID AND VoterUsername = ${req.session.username}
+                      ) AS MyVote
+            FROM Comment WHERE AssociatedPost = ${req.post.PostID} ORDER BY PostDate DESC`);
 
     return res.render('pages/post', {username: req.session.username, groupinfo: req.group, mod: req.isMod, subscribed: req.isSubscribed, post: req.post, comments});
 });
@@ -211,8 +215,8 @@ router.post('/:groupname/:postId/comment', auth.isAuthenticated, async (req, res
     }
 
     await req.db.run(SQL`INSERT INTO 
-        Comment(BodyText, CreatorUsername, AssociatedPost) 
-        VALUES(${req.body.body}, ${req.session.username}, ${req.post.PostID})`);
+        Comment(BodyText, CreatorUsername, AssociatedPost, LikeCount) 
+        VALUES(${req.body.body}, ${req.session.username}, ${req.post.PostID}, 0)`);
 
     res.redirect(`/group/${req.params.groupname}/${req.params.postId}`);
 });
