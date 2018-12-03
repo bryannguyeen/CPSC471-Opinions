@@ -13,6 +13,13 @@ router.param('groupname', async function(req, res, next, groupname) {
     }
 
     req.group = group;
+
+    // Get mod status for this group and this user
+    req.isMod = !!(await req.db.get(SQL`SELECT * FROM Moderates WHERE ModUsername = ${req.session.username} AND LOWER(GroupName) = LOWER(${req.params.groupname})`));
+
+    // Get subscribed status for this group and this user
+    req.isSubscribed = !!(await req.db.get(SQL`SELECT * FROM SubscribedTo WHERE SubscriberUsername = ${req.session.username} AND LOWER(GroupName) = LOWER(${req.params.groupname})`));
+
     next();
 });
 
@@ -75,30 +82,22 @@ router.post("/:groupname/unsubscribe", auth.isAuthenticated, async (req, res) =>
 });
 
 router.get('/:groupname', auth.isAuthenticated, async (req, res) => {
-    // Get mod status
-    const isMod = !!(await req.db.get(SQL`SELECT * FROM Moderates WHERE ModUsername = ${req.session.username} AND LOWER(GroupName) = LOWER(${req.params.groupname})`));
-
-    // Get subscribed status
-    const isSubscribed = !!(await req.db.get(SQL`SELECT * FROM SubscribedTo WHERE SubscriberUsername = ${req.session.username} AND LOWER(GroupName) = LOWER(${req.params.groupname})`));
-
     // Get list of posts
     const posts = await req.db.all(SQL`SELECT * FROM Post WHERE AssociatedGroup = ${req.params.groupname} ORDER BY PostDate DESC LIMIT 10`);
 
-    res.render('pages/group', {username: req.session.username, groupinfo: req.group, mod: isMod, subscribed: isSubscribed, posts});
+    res.render('pages/group', {username: req.session.username, groupinfo: req.group, mod: req.isMod, subscribed: req.isSubscribed, posts});
 });
 
 
 router.get('/:groupname/moderators', auth.isAuthenticated, async (req, res) => {
-    const isMod = !!(await req.db.get(SQL`SELECT * FROM Moderates WHERE ModUsername = ${req.session.username} AND LOWER(GroupName) = LOWER(${req.params.groupname})`));
     const groupMods = await req.db.all(SQL`SELECT * FROM Moderates WHERE LOWER(GroupName) = LOWER(${req.params.groupname})`);
 
-    res.render('pages/moderators', {username: req.session.username, groupinfo: req.group, mod: isMod, modsinfo: groupMods});
+    res.render('pages/moderators', {username: req.session.username, groupinfo: req.group, mod: req.isMod, modsinfo: groupMods});
 });
 
 router.post('/:groupname/moderators', auth.isAuthenticated, async (req, res) => {
     const newMod = req.body.add_moderator;
 
-    const isMod = !!(await req.db.get(SQL`SELECT * FROM Moderates WHERE ModUsername = ${req.session.username} AND LOWER(GroupName) = LOWER(${req.params.groupname})`));
     let groupMods = await req.db.all(SQL`SELECT * FROM Moderates WHERE LOWER(GroupName) = LOWER(${req.params.groupname})`);
 
     // Check if potential mod exists
@@ -108,13 +107,13 @@ router.post('/:groupname/moderators', auth.isAuthenticated, async (req, res) => 
     const alreadyMod = await req.db.get(SQL`SELECT * FROM Moderates WHERE LOWER(ModUsername) = LOWER(${newMod}) AND LOWER(GroupName) = LOWER(${req.params.groupname})`);
 
     if (!user) {
-        return res.render('pages/moderators', {username: req.session.username, groupinfo: req.group, mod: isMod, modsinfo: groupMods,
+        return res.render('pages/moderators', {username: req.session.username, groupinfo: req.group, mod: req.isMod, modsinfo: groupMods,
             message: "User does not exist"});
     }
 
 
     if (alreadyMod) {
-        return res.render('pages/moderators', {username: req.session.username, groupinfo: req.group, mod: isMod, modsinfo: groupMods,
+        return res.render('pages/moderators', {username: req.session.username, groupinfo: req.group, mod: req.isMod, modsinfo: groupMods,
             message: `${user.Username} is already a moderator`});
     } else {
         await req.db.run(SQL`INSERT INTO Moderates VALUES(${user.Username}, ${req.params.groupname})`);
@@ -122,13 +121,12 @@ router.post('/:groupname/moderators', auth.isAuthenticated, async (req, res) => 
         // Refresh group mods list
         groupMods = await req.db.all(SQL`SELECT * FROM Moderates WHERE LOWER(GroupName) = LOWER(${req.params.groupname})`);
 
-        return res.render('pages/moderators', {username: req.session.username, groupinfo: req.group, mod: isMod, modsinfo: groupMods,
+        return res.render('pages/moderators', {username: req.session.username, groupinfo: req.group, mod: req.isMod, modsinfo: groupMods,
             message: `${user.Username} has been added`});
     }
 });
 
 router.post('/:groupname/leave', auth.isAuthenticated, async (req, res) => {
-    const isMod = !!(await req.db.get(SQL`SELECT * FROM Moderates WHERE ModUsername = ${req.session.username} AND LOWER(GroupName) = LOWER(${req.params.groupname})`));
     const groupMods = await req.db.all(SQL`SELECT * FROM Moderates WHERE LOWER(GroupName) = LOWER(${req.params.groupname})`);
 
     if (groupMods.length > 1) {
@@ -144,7 +142,7 @@ router.post('/:groupname/leave', auth.isAuthenticated, async (req, res) => {
         res.redirect(`/group/${req.params.groupname}/moderators`);
     }
     else {
-        return res.render('pages/moderators', {username: req.session.username, groupinfo: req.group, mod: isMod, modsinfo: groupMods,
+        return res.render('pages/moderators', {username: req.session.username, groupinfo: req.group, mod: req.isMod, modsinfo: groupMods,
             message2: "Cannot leave as you are the only moderator"});
     }
 });
@@ -202,23 +200,21 @@ router.post("/:groupname/delete", auth.isAuthenticated, async (req, res) => {
 });
 
 router.get('/:groupname/:postId', auth.isAuthenticated, async (req, res) => {
-    // Get mod status
-    const isMod = !!(await req.db.get(SQL`SELECT * FROM Moderates WHERE ModUsername = ${req.session.username} AND LOWER(GroupName) = LOWER(${req.params.groupname})`));
+    const comments = await req.db.all(SQL`SELECT * FROM Comment WHERE AssociatedPost = ${req.post.PostID} ORDER BY PostDate DESC`);
 
-    // Get subscribed status
-    const isSubscribed = !!(await req.db.get(SQL`SELECT * FROM SubscribedTo WHERE SubscriberUsername = ${req.session.username} AND LOWER(GroupName) = LOWER(${req.params.groupname})`));
-
-    return res.render('pages/post', {username: req.session.username, groupinfo: req.group, mod: isMod, subscribed: isSubscribed, post: req.post});
+    return res.render('pages/post', {username: req.session.username, groupinfo: req.group, mod: req.isMod, subscribed: req.isSubscribed, post: req.post, comments});
 });
 
 router.post('/:groupname/:postId/comment', auth.isAuthenticated, async (req, res) => {
-    // Get mod status
-    const isMod = !!(await req.db.get(SQL`SELECT * FROM Moderates WHERE ModUsername = ${req.session.username} AND LOWER(GroupName) = LOWER(${req.params.groupname})`));
+    if (req.body.body.length > 2000) {
+        return;
+    }
 
-    // Get subscribed status
-    const isSubscribed = !!(await req.db.get(SQL`SELECT * FROM SubscribedTo WHERE SubscriberUsername = ${req.session.username} AND LOWER(GroupName) = LOWER(${req.params.groupname})`));
+    await req.db.run(SQL`INSERT INTO 
+        Comment(BodyText, CreatorUsername, AssociatedPost) 
+        VALUES(${req.body.body}, ${req.session.username}, ${req.post.PostID})`);
 
-    return res.render('pages/post', {username: req.session.username, groupinfo: req.group, mod: isMod, subscribed: isSubscribed, post: req.post});
+    res.redirect(`/group/${req.params.groupname}/${req.params.postId}`);
 });
 
 module.exports = router;

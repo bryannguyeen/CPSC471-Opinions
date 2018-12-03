@@ -40,7 +40,24 @@
         <div style="width: 100%; max-width: 600px; white-space: pre-wrap;">
             <%= post.Bodytext %>
         </div>
-        <hr />
+        <hr/>
+        <form action="/group/<%= locals.groupinfo.GroupName %>/<%= post.PostID %>/comment" method="POST">
+            <textarea rows="4" cols="75" placeholder=" What are your thoughts?" name="body" maxlength="2000" value=<%= locals.commentBody %>></textarea><br/>
+            <button>Comment</button>
+        </form>
+
+        <hr/>
+
+        <% if (!comments || comments.length === 0) {%>
+            <h5>There aren't any comments to show you :(</h5>
+        <% } else {%>
+            <% for (const comment of comments) { %>
+                <div style="margin-bottom: 10px;">
+                    <span style="font-size: 14px;"><%= comment.CreatorUsername %> - <%= comment.PostDate %></span><br>
+                    <span style="font-size: 16px;"><%= comment.BodyText %></span>
+                </div>
+            <% } %>
+        <% } %>
     </div>
 </main>
 
