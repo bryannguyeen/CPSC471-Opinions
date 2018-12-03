@@ -218,9 +218,13 @@ router.post('/:groupname/:postId/comment', auth.isAuthenticated, async (req, res
         return;
     }
 
-    await req.db.run(SQL`INSERT INTO 
+    const comment = await req.db.run(SQL`INSERT INTO 
         Comment(BodyText, CreatorUsername, AssociatedPost, LikeCount) 
-        VALUES(${req.body.body}, ${req.session.username}, ${req.post.PostID}, 0)`);
+        VALUES(${req.body.body}, ${req.session.username}, ${req.post.PostID}, 1)`);
+
+    // Automatically upvote their own post
+    await req.db.run(SQL`INSERT INTO CommentVote (AssociatedComment, VoterUsername, Type) 
+                             VALUES (${comment.lastID}, ${req.session.username}, 1)`);
 
     res.redirect(`/group/${req.params.groupname}/${req.params.postId}`);
 });
