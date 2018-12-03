@@ -221,4 +221,34 @@ router.post('/:groupname/:postId/comment', auth.isAuthenticated, async (req, res
     res.redirect(`/group/${req.params.groupname}/${req.params.postId}`);
 });
 
+router.post('/:groupname/:postId/vote', auth.isAuthenticated, async (req, res) => {
+    const type = req.body.type;
+
+    if (![-1, 0, 1].includes(type)) {
+        return res.status(500).json({msg: "Invalid vote type"});
+    }
+
+    // Get if they already have a vote
+    const vote = await req.db.get(SQL`SELECT * FROM PostVote WHERE AssociatedPost = ${req.params.postId} AND VoterUsername = ${req.session.username}`);
+
+    // Update the vote type or insert it if it doesn't exist
+    await req.db.run(SQL`INSERT OR REPLACE INTO PostVote (AssociatedPost, VoterUsername, Type) 
+                             VALUES (${req.params.postId}, ${req.session.username}, ${type})`);
+
+
+    // Figure out what the new total like amount is
+    let offset = 0;
+
+    if (vote) {
+        // Negate previous vote
+        offset -= vote.Type;
+    }
+
+    offset += type;
+
+    await req.db.run(SQL`UPDATE Post SET LikeCount = LikeCount + ${offset} WHERE PostID = ${req.params.postId}`);
+
+    res.json({msg: "Successfully voted!", offset});
+});
+
 module.exports = router;
