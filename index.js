@@ -161,13 +161,10 @@ app.post('/signup', async (req, res) => {
   res.redirect('/');
 });
 
-let theUser;
 app.get('/user/:username', auth.isAuthenticated, async (req, res) => {
   // check if user exists
-  theUser = req.params.username;
-  console.log('Username is %s', theUser);
   const user = await db.get(SQL`SELECT * FROM User WHERE LOWER(Username) = LOWER(${req.params.username})`);
-  // later we will add the user's posts too
+  // TODO: Show user's posts
 
   // check if logged in user is following this user's page
   let isFollowing = 0;
@@ -177,7 +174,7 @@ app.get('/user/:username', auth.isAuthenticated, async (req, res) => {
   if (follower) {
     isFollowing = 1;
   }
-  console.log('User is %s', user);
+
   if (user) {
     return res.render('pages/user', { username: req.session.username, userinfo: user, followed: isFollowing });
   } else {
@@ -186,18 +183,8 @@ app.get('/user/:username', auth.isAuthenticated, async (req, res) => {
 });
 
 app.get('/user', auth.isAuthenticated, async (req, res) => {
-  res.redirect('/user/' + theUser.toString());
+  res.redirect(`/user/${req.session.username}`);
 });
-
-/*
-app.post("/user/:username", auth.isAuthenticated, async (req, res) => {
-    var theUser = req.body.page_username;
-
-    await db.run(SQL`INSERT INTO User (Username) VALUES (${theUser})`);
-    res.redirect('/user/' + theUser);
-  });
-//not sure if needed, so i'll leave commented out
-  */
 
 app.post('/follow', auth.isAuthenticated, async (req, res) => {
   await db.run(SQL`INSERT INTO Follows VALUES(${req.session.username}, ${req.body.page_username})`);
