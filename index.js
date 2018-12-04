@@ -16,6 +16,7 @@ if (!config.session.secret) {
 
 const app = express();
 app.use(bodyParser.urlencoded({extended: false}));
+app.use(bodyParser.json());
 app.set('view engine', 'ejs');
 app.use(session(Object.assign({
     store: new SQLiteStore(),
@@ -266,10 +267,41 @@ app.get('/mail/:id', auth.isAuthenticated, async (req, res) => {
 
 });
 
-app.post("/deletemail", auth.isAuthenticated, async (req, res) => {
+app.post('/deletemail', auth.isAuthenticated, async (req, res) => {
     await db.run(SQL`DELETE FROM Mail WHERE MailID = ${req.body.mailID}`);
     res.redirect('/inbox/1');
 });
+
+app.post('/comment/:id/vote', auth.isAuthenticated, async (req, res) => {
+    const type = req.body.type;
+
+    if (![-1, 0, 1].includes(type)) {
+        return res.status(500).json({msg: "Invalid vote type"});
+    }
+
+    // Get if they already have a vote
+    const vote = await req.db.get(SQL`SELECT * FROM commentvote WHERE AssociatedComment = ${req.params.id} AND VoterUsername = ${req.session.username}`);
+
+    // Update the vote type or insert it if it doesn't exist
+    await req.db.run(SQL`INSERT OR REPLACE INTO CommentVote (AssociatedComment, VoterUsername, Type) 
+                             VALUES (${req.params.id}, ${req.session.username}, ${type})`);
+
+
+    // Figure out what the new total like amount is
+    let offset = 0;
+
+    if (vote) {
+        // Negate previous vote
+        offset -= vote.Type;
+    }
+
+    offset += type;
+
+    await req.db.run(SQL`UPDATE Comment SET LikeCount = LikeCount + ${offset} WHERE CommentID = ${req.params.id}`);
+
+    res.json({msg: "Successfully voted!", offset});
+});
+
 
 
 
