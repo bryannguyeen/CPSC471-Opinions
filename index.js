@@ -48,9 +48,9 @@ app.use('/group', require('./group'));
 app.get('/', auth.isAuthenticated, async (req, res) => {
     // Get 10 most recent posts from groups the user is subscribed to
     const posts = await req.db.all(SQL`
-            SELECT * FROM Post WHERE 
-                EXISTS(SELECT * FROM SubscribedTo 
-                        WHERE SubscriberUsername = ${req.session.username} 
+            SELECT * FROM Post WHERE
+                EXISTS(SELECT * FROM SubscribedTo
+                        WHERE SubscriberUsername = ${req.session.username}
                               AND GroupName = AssociatedGroup
                       )
                 ORDER BY PostDate DESC LIMIT 10`);
@@ -153,9 +153,10 @@ app.post("/signup", async (req, res) => {
     res.redirect("/");
 });
 
+var theUser;
 app.get('/user/:username', auth.isAuthenticated, async (req, res) => {
     // check if user exists
-    var theUser = req.params.username;
+    theUser = req.params.username;
     console.log('Username is %s', theUser);
     const user = await db.get(SQL`SELECT * FROM User WHERE LOWER(Username) = LOWER(${req.params.username})`);
 /*      const user2 = await db.get(SQL `SELECT username, CreatorUsername, Follower, SubscriberUsername
@@ -174,12 +175,16 @@ app.get('/user/:username', auth.isAuthenticated, async (req, res) => {
     if (follower) {
         isFollowing = 1;
     }
-    console.log('User is %s', user.toString());
+    console.log('User is %s', user);
     if (user) {
-        return res.render('pages/user/' + theUser.toString(), {username: req.session.username, userinfo: user, followed: isFollowing});    }
+        return res.render('pages/user', {username: req.session.username, userinfo: user, followed: isFollowing});    }
     else {
         return res.render('pages/generic', {username: req.session.username, messageH: "User does not exist"});
     }
+});
+
+app.get('/user', auth.isAuthenticated, async (req, res) => {
+    res.redirect('/user/' + theUser.toString());
 });
 
 /*
@@ -283,7 +288,7 @@ app.post('/comment/:id/vote', auth.isAuthenticated, async (req, res) => {
     const vote = await req.db.get(SQL`SELECT * FROM commentvote WHERE AssociatedComment = ${req.params.id} AND VoterUsername = ${req.session.username}`);
 
     // Update the vote type or insert it if it doesn't exist
-    await req.db.run(SQL`INSERT OR REPLACE INTO CommentVote (AssociatedComment, VoterUsername, Type) 
+    await req.db.run(SQL`INSERT OR REPLACE INTO CommentVote (AssociatedComment, VoterUsername, Type)
                              VALUES (${req.params.id}, ${req.session.username}, ${type})`);
 
 
