@@ -9,7 +9,7 @@ router.param('groupname', async function(req, res, next, groupname) {
   const group = await req.db.get(SQL`SELECT * FROM \`Group\` WHERE LOWER(GroupName) = LOWER(${groupname})`);
 
   if (!group) {
-    return res.render('pages/generic', {username: req.session.username, messageH: 'Group cannot be found'});
+    return res.render('pages/generic', { username: req.session.username, messageH: 'Group cannot be found' });
   }
 
   req.group = group;
@@ -35,7 +35,7 @@ router.param('postId', async function(req, res, next, postId) {
             FROM Post WHERE PostID = ${postId}`);
 
   if (!post) {
-    return res.render('pages/generic', {username: req.session.username, messageH: 'Post cannot be found'});
+    return res.render('pages/generic', { username: req.session.username, messageH: 'Post cannot be found' });
   }
 
   req.post = post;
@@ -43,7 +43,7 @@ router.param('postId', async function(req, res, next, postId) {
 });
 
 router.get('/create', auth.isAuthenticated, async (req, res) => {
-  res.render('pages/creategroup', {username: req.session.username});
+  res.render('pages/creategroup', { username: req.session.username });
 });
 
 router.post('/create', auth.isAuthenticated, async (req, res) => {
@@ -63,7 +63,7 @@ router.post('/create', auth.isAuthenticated, async (req, res) => {
   }
 
   if (message) {
-    return res.render('pages/creategroup', {username: req.session.username, message, name: groupname});
+    return res.render('pages/creategroup', { username: req.session.username, message, name: groupname });
   }
 
   // Check if group already exists
@@ -112,7 +112,6 @@ router.get('/:groupname', auth.isAuthenticated, async (req, res) => {
   });
 });
 
-
 router.get('/:groupname/moderators', auth.isAuthenticated, async (req, res) => {
   const groupMods = await req.db.all(SQL`SELECT * FROM Moderates WHERE
                                             LOWER(GroupName) = LOWER(${req.params.groupname})`);
@@ -148,7 +147,6 @@ router.post('/:groupname/moderators', auth.isAuthenticated, async (req, res) => 
       message: 'User does not exist',
     });
   }
-
 
   if (alreadyMod) {
     return res.render('pages/moderators', {
@@ -203,11 +201,13 @@ router.post('/:groupname/leave', auth.isAuthenticated, async (req, res) => {
 });
 
 router.get('/:groupname/post', auth.isAuthenticated, async (req, res) => {
-  res.render('pages/newpost', {username: req.session.username, groupinfo: req.group});
+  res.render('pages/newpost', { username: req.session.username, groupinfo: req.group });
 });
 
 router.post('/:groupname/post', auth.isAuthenticated, async (req, res) => {
-  const title = req.body.title; const body = req.body.body; const nsfw = !!req.body.nsfw;
+  const title = req.body.title;
+  const body = req.body.body;
+  const nsfw = !!req.body.nsfw;
 
   const ipInfo = await ipApi.getIpInfo(req.connection.remoteAddress);
 
@@ -302,7 +302,7 @@ router.post('/:groupname/:postId/vote', auth.isAuthenticated, async (req, res) =
   const type = req.body.type;
 
   if (![-1, 0, 1].includes(type)) {
-    return res.status(500).json({msg: 'Invalid vote type'});
+    return res.status(500).json({ msg: 'Invalid vote type' });
   }
 
   // Get if they already have a vote
@@ -313,7 +313,6 @@ router.post('/:groupname/:postId/vote', auth.isAuthenticated, async (req, res) =
   // Update the vote type or insert it if it doesn't exist
   await req.db.run(SQL`INSERT OR REPLACE INTO PostVote (AssociatedPost, VoterUsername, Type) 
                              VALUES (${req.params.postId}, ${req.session.username}, ${type})`);
-
 
   // Figure out what the new total like amount is
   let offset = 0;
@@ -327,7 +326,7 @@ router.post('/:groupname/:postId/vote', auth.isAuthenticated, async (req, res) =
 
   await req.db.run(SQL`UPDATE Post SET LikeCount = LikeCount + ${offset} WHERE PostID = ${req.params.postId}`);
 
-  res.json({msg: 'Successfully voted!', offset});
+  res.json({ msg: 'Successfully voted!', offset });
 });
 
 module.exports = router;

@@ -15,14 +15,21 @@ if (!config.session.secret) {
 }
 
 const app = express();
-app.use(bodyParser.urlencoded({extended: false}));
+app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 app.set('view engine', 'ejs');
-app.use(session(Object.assign({
-  store: new SQLiteStore(),
-  resave: false,
-  saveUninitialized: true,
-}, config.session)));
+app.use(
+  session(
+    Object.assign(
+      {
+        store: new SQLiteStore(),
+        resave: false,
+        saveUninitialized: true,
+      },
+      config.session,
+    ),
+  ),
+);
 
 let db;
 
@@ -33,7 +40,7 @@ app.use(function(req, res, next) {
 
 async function main() {
   const port = process.env.PORT || 3000;
-  db = await sqlite.open('./db.sqlite', {cached: true, Promise}).then((db) => db.migrate());
+  db = await sqlite.open('./db.sqlite', { cached: true, Promise }).then(db => db.migrate());
   app.listen(port);
 
   // This query activates foreign constraints
@@ -43,7 +50,6 @@ async function main() {
 }
 
 app.use('/group', require('./group'));
-
 
 app.get('/', auth.isAuthenticated, async (req, res) => {
   // Get 10 most recent posts from groups the user is subscribed to
@@ -55,12 +61,12 @@ app.get('/', auth.isAuthenticated, async (req, res) => {
                       )
                 ORDER BY PostDate DESC LIMIT 10`);
 
-  res.render('pages/index', {username: req.session.username, posts});
+  res.render('pages/index', { username: req.session.username, posts });
 });
 
 app.get('/settings', auth.isAuthenticated, async (req, res, next) => {
   const settings = await db.get(SQL`SELECT * FROM UserSettings WHERE Username = ${req.session.username}`);
-  res.render('pages/settings', {username: req.session.username, flag: settings && settings.HideNSFW});
+  res.render('pages/settings', { username: req.session.username, flag: settings && settings.HideNSFW });
 });
 
 app.post('/settings', auth.isAuthenticated, async (req, res) => {
@@ -78,11 +84,14 @@ app.post('/deleteaccount', auth.isAuthenticated, async (req, res) => {
 
   if (moderator) {
     const settings = await db.get(SQL`SELECT * FROM UserSettings WHERE Username = ${req.session.username}`);
-    return res.render('pages/settings', {username: req.session.username, flag: settings && settings.HideNSFW,
-      message: 'Cannot delete account because you are a mod of a group. Leave all your groups first.'});
+    return res.render('pages/settings', {
+      username: req.session.username,
+      flag: settings && settings.HideNSFW,
+      message: 'Cannot delete account because you are a mod of a group. Leave all your groups first.',
+    });
   } else {
     await db.run(SQL`DELETE FROM User WHERE Username = ${req.session.username}`);
-    req.session.destroy((err) => {
+    req.session.destroy(err => {
       if (err) throw err;
       res.redirect('/signup');
     });
@@ -99,17 +108,17 @@ app.post('/login', async (req, res) => {
   // we want the username to be case insensitive
   const user = await db.get(SQL`SELECT * FROM User WHERE LOWER(Username) = LOWER(${username})`);
 
-  if (user && await bcrypt.compare(password, user.Password)) {
+  if (user && (await bcrypt.compare(password, user.Password))) {
     // username/password pair exists
     req.session.username = user.Username;
     res.redirect('/');
   } else {
-    res.render('pages/login', {message: 'Incorrect username or password!', name: username});
+    res.render('pages/login', { message: 'Incorrect username or password!', name: username });
   }
 });
 
 app.get('/logout', async (req, res) => {
-  req.session.destroy((err) => {
+  req.session.destroy(err => {
     if (err) throw err;
     res.redirect('/login');
   });
@@ -125,23 +134,23 @@ app.post('/signup', async (req, res) => {
   const confirmPassword = req.body.confirm_password;
 
   if (password !== confirmPassword) {
-    return res.render('pages/signup', {message: 'Passwords don\'t match', name: username});
+    return res.render('pages/signup', { message: "Passwords don't match", name: username });
   }
   if (username.length < 1 || username.length > 25) {
-    return res.render('pages/signup', {message: 'Invalid username', name: username});
+    return res.render('pages/signup', { message: 'Invalid username', name: username });
   }
   if (/[^A-Za-z0-9\d]/.test(username)) {
-    return res.render('pages/signup', {message: 'Only alphanumeric characters allowed in username', name: username});
+    return res.render('pages/signup', { message: 'Only alphanumeric characters allowed in username', name: username });
   }
   if (password.length < 8) {
-    return res.render('pages/signup', {message: 'Password must be at least 8 characters long', name: username});
+    return res.render('pages/signup', { message: 'Password must be at least 8 characters long', name: username });
   }
 
   // Check if someone already has this username
   const user = await db.get(SQL`SELECT * FROM User WHERE LOWER(Username) = LOWER(${username})`);
 
   if (user) {
-    return res.render('pages/signup', {message: 'Username already taken', name: username});
+    return res.render('pages/signup', { message: 'Username already taken', name: username });
   }
 
   const hashedPassword = await bcrypt.hash(password, 10);
@@ -160,7 +169,6 @@ app.get('/user/:username', auth.isAuthenticated, async (req, res) => {
   const user = await db.get(SQL`SELECT * FROM User WHERE LOWER(Username) = LOWER(${req.params.username})`);
   // later we will add the user's posts too
 
-
   // check if logged in user is following this user's page
   let isFollowing = 0;
   const follower = await db.get(SQL`
@@ -171,9 +179,9 @@ app.get('/user/:username', auth.isAuthenticated, async (req, res) => {
   }
   console.log('User is %s', user);
   if (user) {
-    return res.render('pages/user', {username: req.session.username, userinfo: user, followed: isFollowing});
+    return res.render('pages/user', { username: req.session.username, userinfo: user, followed: isFollowing });
   } else {
-    return res.render('pages/generic', {username: req.session.username, messageH: 'User does not exist'});
+    return res.render('pages/generic', { username: req.session.username, messageH: 'User does not exist' });
   }
 });
 
@@ -206,9 +214,8 @@ app.post('/unfollow', auth.isAuthenticated, async (req, res) => {
 
 app.get('/explore', auth.isAuthenticated, async (req, res) => {
   const groupnames = await db.all(SQL`SELECT GroupName FROM \`Group\``);
-  res.render('pages/explore', {username: req.session.username, groups: groupnames});
+  res.render('pages/explore', { username: req.session.username, groups: groupnames });
 });
-
 
 app.get('/inbox', auth.isAuthenticated, async (req, res) => {
   res.redirect('/inbox/1');
@@ -232,7 +239,7 @@ app.get('/inbox/:pageNo', auth.isAuthenticated, async (req, res) => {
 });
 
 app.get('/compose', auth.isAuthenticated, async (req, res) => {
-  res.render('pages/compose', {username: req.session.username, recipient: req.query.sendto});
+  res.render('pages/compose', { username: req.session.username, recipient: req.query.sendto });
 });
 
 app.post('/compose', auth.isAuthenticated, async (req, res) => {
@@ -241,12 +248,22 @@ app.post('/compose', auth.isAuthenticated, async (req, res) => {
   const message_body = req.body.message_body;
 
   if (subject.length > 25) {
-    return res.render('pages/compose', {username: req.session.username, message: 'Subject is too big',
-      recipient: recipient, subject: subject, body: message_body});
+    return res.render('pages/compose', {
+      username: req.session.username,
+      message: 'Subject is too big',
+      recipient: recipient,
+      subject: subject,
+      body: message_body,
+    });
   }
   if (message_body > 5000) {
-    return res.render('pages/compose', {username: req.session.username, message: 'Message exceeds 5000 characters',
-      recipient: recipient, subject: subject, body: message_body});
+    return res.render('pages/compose', {
+      username: req.session.username,
+      message: 'Message exceeds 5000 characters',
+      recipient: recipient,
+      subject: subject,
+      body: message_body,
+    });
   }
 
   // check if recipient exists
@@ -260,8 +277,13 @@ app.post('/compose', auth.isAuthenticated, async (req, res) => {
       messageP: 'Your message has been sent.',
     });
   } else {
-    return res.render('pages/compose', {username: req.session.username, message: 'Username does not exist',
-      recipient: recipient, subject: subject, body: message_body});
+    return res.render('pages/compose', {
+      username: req.session.username,
+      message: 'Username does not exist',
+      recipient: recipient,
+      subject: subject,
+      body: message_body,
+    });
   }
 });
 
@@ -276,7 +298,7 @@ app.get('/mail/:id', auth.isAuthenticated, async (req, res) => {
       messageP: 'You are not authorized to view this page',
     });
   } else {
-    return res.render('pages/mail', {username: req.session.username, mail: mail});
+    return res.render('pages/mail', { username: req.session.username, mail: mail });
   }
 });
 
@@ -289,7 +311,7 @@ app.post('/comment/:id/vote', auth.isAuthenticated, async (req, res) => {
   const type = req.body.type;
 
   if (![-1, 0, 1].includes(type)) {
-    return res.status(500).json({msg: 'Invalid vote type'});
+    return res.status(500).json({ msg: 'Invalid vote type' });
   }
 
   // Get if they already have a vote
@@ -299,7 +321,6 @@ app.post('/comment/:id/vote', auth.isAuthenticated, async (req, res) => {
   // Update the vote type or insert it if it doesn't exist
   await req.db.run(SQL`INSERT OR REPLACE INTO CommentVote (AssociatedComment, VoterUsername, Type)
                              VALUES (${req.params.id}, ${req.session.username}, ${type})`);
-
 
   // Figure out what the new total like amount is
   let offset = 0;
@@ -313,8 +334,7 @@ app.post('/comment/:id/vote', auth.isAuthenticated, async (req, res) => {
 
   await req.db.run(SQL`UPDATE Comment SET LikeCount = LikeCount + ${offset} WHERE CommentID = ${req.params.id}`);
 
-  res.json({msg: 'Successfully voted!', offset});
+  res.json({ msg: 'Successfully voted!', offset });
 });
-
 
 main();
