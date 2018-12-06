@@ -9,8 +9,25 @@
     <%- include('../partials/header', {user: username}); %>
 </header>
 
+<style>
+    .subscribe-form {
+        float: right;
+        margin-top: 20px;
+    }
+</style>
 <main>
 
+    <% if (locals.followed) { %>
+        <form action="/unfollow" method="POST"  class="subscribe-form">
+            <input type="hidden" name="page_username" value=<%= locals.userinfo.Username %>>
+            <button>Unfollow</button>
+        </form>
+    <% } else { %>
+        <form action="/follow" method="POST"  class="subscribe-form">
+            <input type="hidden" name="page_username" value=<%= locals.userinfo.Username %>>
+            <button>Follow</button>
+        </form>
+    <% } %>
 
     <h1><%= locals.userinfo.Username %></h1>
     <small>
@@ -19,22 +36,25 @@
         Posts | Upvoted Posts
     </small>
     <div class="jumbotron">
-      <form action="/user/<%= locals.userinfo.Username %>" method="POST" align="right">
-          the user!
-      </form>
 
-        <% if (locals.followed) { %>
-            <form action="/unfollow" method="POST" align="right">
-                <input type="hidden" name="page_username" value=<%= locals.userinfo.Username %>>
-                <button>Unfollow</button>
-            </form>
-        <% } else { %>
-            <form action="/follow" method="POST" align="right">
-                <input type="hidden" name="page_username" value=<%= locals.userinfo.Username %>>
-                <button>Follow</button>
-            </form>
+        <% for (const post of locals.posts) { %>
+            <div style="margin-bottom: 10px;">
+                <h4 style="margin-bottom: 0;"><a href="/group/<%= post.AssociatedGroup %>/<%= post.PostID %>"><%= post.IsNSFW ? 'NSFW - ' : '' %><%= post.Title %></a><br></h4>
+                <small style=""><%= post.LikeCount %> Points - Posted by <%= post.CreatorUsername %> on <%= post.PostDate %> <%= post.CountryOfOrigin ? ` from ${post.CountryOfOrigin}` : '' %></small>
+            </div>
         <% } %>
 
+
+
+        <% const nextPage = Number(locals.page) + 1 %>
+        <% const previousPage = Number(locals.page) - 1 %>
+        <% if (Number(locals.page) > 1) { %>
+            <a href="/user/<%= locals.userinfo.Username %>/<%= previousPage %>">&ltPrevious Page</a>
+        <% } %>
+        &nbsp
+        <% if (Number(locals.page) < Number(locals.numPages)) { %>
+            <a href="/user/<%= locals.userinfo.Username %>/<%= nextPage %>">Next Page></a>
+        <% } %>
 
     </div>
 </main>

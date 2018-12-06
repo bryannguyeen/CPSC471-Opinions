@@ -98,10 +98,31 @@ router.post('/:groupname/unsubscribe', auth.isAuthenticated, async (req, res) =>
 });
 
 router.get('/:groupname', auth.isAuthenticated, async (req, res) => {
+  res.redirect('/group/' + req.params.groupname + '/page/1')
+});
+
+router.get('/:groupname/page/:pageNo', auth.isAuthenticated, async (req, res) => {
+  const hideNSFW = await req.db.get(SQL`SELECT HideNSFW FROM UserSettings WHERE Username = ${req.session.username}`);
+  var allowNSFW = 0;
+  if (!hideNSFW) {
+    allowNSFW = 1
+  }
+  else {
+    allowNSFW = (hideNSFW.HideNSFW + 1) % 2
+  }
+
+  const offset = (Number(req.params.pageNo) - 1) * 10;
+  const postCount = await req.db.get(SQL`SELECT COUNT(*) as count FROM Post WHERE
+                                      AssociatedGroup = ${req.params.groupname}
+                                      AND (IsNFSW = 0 OR IsNFSW = ${allowNSFW}) 
+                                      `);
+  const numPages = Math.ceil(parseFloat(postCount.count) / 10);
+
   // Get list of posts
   const posts = await req.db.all(SQL`SELECT * FROM Post WHERE
                                         AssociatedGroup = ${req.params.groupname}
-                                     ORDER BY PostDate DESC LIMIT 10`);
+                                        AND (IsNFSW = 0 OR IsNFSW = ${allowNSFW})
+                                     ORDER BY PostDate DESC LIMIT 10 OFFSET ${offset}`);
 
   res.render('pages/group', {
     username: req.session.username,
@@ -109,6 +130,8 @@ router.get('/:groupname', auth.isAuthenticated, async (req, res) => {
     mod: req.isMod,
     subscribed: req.isSubscribed,
     posts,
+    page: req.params.pageNo,
+    numPages
   });
 });
 
@@ -201,7 +224,7 @@ router.post('/:groupname/leave', auth.isAuthenticated, async (req, res) => {
 });
 
 router.get('/:groupname/post', auth.isAuthenticated, async (req, res) => {
-  res.render('pages/newpost', { username: req.session.username, groupinfo: req.group });
+  res.render('pages/newpost', { username: req.session.username, subscribed: req.isSubscribed, groupinfo: req.group });
 });
 
 router.post('/:groupname/post', auth.isAuthenticated, async (req, res) => {

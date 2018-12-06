@@ -42,6 +42,19 @@
                 <small style=""><%= post.LikeCount %> Points - Posted by <%= post.CreatorUsername %> on <%= post.PostDate %> <%= post.CountryOfOrigin ? ` from ${post.CountryOfOrigin}` : '' %></small>
             </div>
         <% } %>
+
+
+
+
+        <% const nextPage = Number(locals.page) + 1 %>
+        <% const previousPage = Number(locals.page) - 1 %>
+        <% if (Number(locals.page) > 1) { %>
+            <a href="/group/<%= locals.groupinfo.GroupName %>/page/<%= previousPage %>">&ltPrevious Page</a>
+        <% } %>
+        &nbsp
+        <% if (Number(locals.page) < Number(locals.numPages)) { %>
+            <a href="/group/<%= locals.groupinfo.GroupName %>/page/<%= nextPage %>">Next Page></a>
+        <% } %>
     </div>
 </main>
 

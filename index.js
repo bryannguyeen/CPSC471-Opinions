@@ -52,16 +52,53 @@ async function main() {
 app.use('/group', require('./group'));
 
 app.get('/', auth.isAuthenticated, async (req, res) => {
-  // Get 10 most recent posts from groups the user is subscribed to
-  const posts = await req.db.all(SQL`
-            SELECT * FROM Post WHERE
-                EXISTS(SELECT * FROM SubscribedTo
+  res.redirect('/home/1');
+});
+
+app.get('/home/:pageNo', auth.isAuthenticated, async (req, res) => {
+  const hideNSFW = await req.db.get(SQL`SELECT HideNSFW FROM UserSettings WHERE Username = ${req.session.username}`);
+  var allowNSFW = 0;
+  if (!hideNSFW) {
+    allowNSFW = 1
+  }
+  else {
+    allowNSFW = (hideNSFW.HideNSFW + 1) % 2
+  }
+
+  const offset = (Number(req.params.pageNo) - 1) * 10;
+  const postCount = await req.db.get(SQL
+            `SELECT COUNT(*) as count FROM Post WHERE
+                (EXISTS(SELECT * FROM SubscribedTo
                         WHERE SubscriberUsername = ${req.session.username}
                               AND GroupName = AssociatedGroup
                       )
-                ORDER BY PostDate DESC LIMIT 10`);
+                OR
+                EXISTS(SELECT * FROM Follows
+                        WHERE follower = ${req.session.username}
+                              AND followee = CreatorUsername
+                      )
+                )
+                AND (IsNFSW = 0 OR IsNFSW = ${allowNSFW})
+                ORDER BY PostDate DESC LIMIT 10
+                                      `);
+  const numPages = Math.ceil(parseFloat(postCount.count) / 10);
 
-  res.render('pages/index', { username: req.session.username, posts });
+  // Get 10 most recent posts from groups the user is subscribed to as well posts made by users the user is followed to
+  const posts = await req.db.all(SQL`
+            SELECT * FROM Post WHERE
+                (EXISTS(SELECT * FROM SubscribedTo
+                        WHERE SubscriberUsername = ${req.session.username}
+                              AND GroupName = AssociatedGroup
+                      )
+                OR
+                EXISTS(SELECT * FROM Follows
+                        WHERE follower = ${req.session.username}
+                              AND followee = CreatorUsername
+                      ))
+                AND (IsNFSW = 0 OR IsNFSW = ${allowNSFW})
+                ORDER BY PostDate DESC LIMIT 10 OFFSET ${offset}`);
+
+  res.render('pages/index', { username: req.session.username, posts, page: req.params.pageNo, numPages});
 });
 
 app.get('/settings', auth.isAuthenticated, async (req, res, next) => {
@@ -161,10 +198,42 @@ app.post('/signup', async (req, res) => {
   res.redirect('/');
 });
 
-app.get('/user/:username', auth.isAuthenticated, async (req, res) => {
+app.get('/user/:username/', auth.isAuthenticated, async (req, res) => {
+  res.redirect('/user/' + req.params.username + '/1');
+});
+
+app.get('/user/:username/:pageNo', auth.isAuthenticated, async (req, res) => {
   // check if user exists
   const user = await db.get(SQL`SELECT * FROM User WHERE LOWER(Username) = LOWER(${req.params.username})`);
+
+
+
   // TODO: Show user's posts
+  const hideNSFW = await req.db.get(SQL`SELECT HideNSFW FROM UserSettings WHERE Username = ${req.session.username}`);
+  var allowNSFW = 0;
+  if (!hideNSFW) {
+    allowNSFW = 1
+  }
+  else {
+    allowNSFW = (hideNSFW.HideNSFW + 1) % 2
+  }
+
+  const offset = (Number(req.params.pageNo) - 1) * 10;
+  const postCount = await req.db.get(SQL`SELECT COUNT(*) as count FROM Post WHERE
+                                      CreatorUsername = ${req.params.username}
+                                      AND (IsNFSW = 0 OR IsNFSW = ${allowNSFW}) 
+                                      `);
+  const numPages = Math.ceil(parseFloat(postCount.count) / 10);
+
+  // Get list of posts
+  const posts = await req.db.all(SQL`SELECT * FROM Post WHERE
+                                        CreatorUsername = ${req.params.username}
+                                        AND (IsNFSW = 0 OR IsNFSW = ${allowNSFW})
+                                     ORDER BY PostDate DESC LIMIT 10 OFFSET ${offset}`);
+
+
+
+
 
   // check if logged in user is following this user's page
   let isFollowing = 0;
@@ -176,7 +245,12 @@ app.get('/user/:username', auth.isAuthenticated, async (req, res) => {
   }
 
   if (user) {
-    return res.render('pages/user', { username: req.session.username, userinfo: user, followed: isFollowing });
+    return res.render('pages/user', { username: req.session.username,
+                                      userinfo: user,
+                                      followed: isFollowing,
+                                      posts,
+                                      page: req.params.pageNo,
+                                      numPages });
   } else {
     return res.render('pages/generic', { username: req.session.username, messageH: 'User does not exist' });
   }
