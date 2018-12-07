@@ -63,7 +63,7 @@
                         <a href="#" class="cvote" type="-1">-</a>
                         <span class="like-count"><%= comment.LikeCount %></span>
                         <a href="#" class="cvote" type="1">+</a>
-                        Points - <%= comment.CreatorUsername %> - <%= comment.PostDate %>
+                        Points - <%= comment.CreatorUsername %> - <%= comment.PostDate %> <%= post.CountryOfOrigin ? ` from ${post.CountryOfOrigin}` : '' %>
                     </span><br>
                     <span style="font-size: 16px;"><%= comment.BodyText %></span>
                 </div>

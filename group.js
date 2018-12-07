@@ -29,7 +29,7 @@ router.param('groupname', async function(req, res, next, groupname) {
 
 router.param('postId', async function(req, res, next, postId) {
   const post = await req.db.get(SQL`
-            SELECT *, (SELECT Type FROM PostVote 
+            SELECT *, (SELECT Type FROM PostVote
                             WHERE AssociatedPost = PostID AND VoterUsername = ${req.session.username}
                       ) AS MyVote
             FROM Post WHERE PostID = ${postId}`);
@@ -91,7 +91,7 @@ router.post('/:groupname/subscribe', auth.isAuthenticated, async (req, res) => {
 });
 
 router.post('/:groupname/unsubscribe', auth.isAuthenticated, async (req, res) => {
-  await req.db.run(SQL`DELETE FROM SubscribedTo WHERE 
+  await req.db.run(SQL`DELETE FROM SubscribedTo WHERE
                         SubscriberUsername = ${req.session.username} AND GroupName = ${req.params.groupname}`);
 
   res.redirect('/group/' + req.params.groupname);
@@ -114,7 +114,7 @@ router.get('/:groupname/page/:pageNo', auth.isAuthenticated, async (req, res) =>
   const offset = (Number(req.params.pageNo) - 1) * 10;
   const postCount = await req.db.get(SQL`SELECT COUNT(*) as count FROM Post WHERE
                                       AssociatedGroup = ${req.params.groupname}
-                                      AND (IsNFSW = 0 OR IsNFSW = ${allowNSFW}) 
+                                      AND (IsNFSW = 0 OR IsNFSW = ${allowNSFW})
                                       `);
   const numPages = Math.ceil(parseFloat(postCount.count) / 10);
 
@@ -259,12 +259,12 @@ router.post('/:groupname/post', auth.isAuthenticated, async (req, res) => {
 
   await req.db.run(SQL`INSERT OR IGNORE INTO country VALUES (${ipInfo.country})`);
 
-  const post = await req.db.run(SQL`INSERT INTO 
-        Post(CreatorUsername, AssociatedGroup, LikeCount, Title, Bodytext, IsNFSW, CountryOfOrigin) 
+  const post = await req.db.run(SQL`INSERT INTO
+        Post(CreatorUsername, AssociatedGroup, LikeCount, Title, Bodytext, IsNFSW, CountryOfOrigin)
         VALUES(${req.session.username}, ${req.params.groupname}, 1, ${title}, ${body}, ${nsfw}, ${ipInfo.country})`);
 
   // Automatically upvote their own post
-  await req.db.run(SQL`INSERT INTO PostVote (AssociatedPost, VoterUsername, Type) 
+  await req.db.run(SQL`INSERT INTO PostVote (AssociatedPost, VoterUsername, Type)
                              VALUES (${post.lastID}, ${req.session.username}, 1)`);
 
   res.redirect(`/group/${req.params.groupname}`);
@@ -290,7 +290,7 @@ router.post('/:groupname/delete', auth.isAuthenticated, async (req, res) => {
 
 router.get('/:groupname/:postId', auth.isAuthenticated, async (req, res) => {
   const comments = await req.db.all(SQL`
-            SELECT *, (SELECT Type FROM CommentVote 
+            SELECT *, (SELECT Type FROM CommentVote
                             WHERE AssociatedComment = CommentID AND VoterUsername = ${req.session.username}
                       ) AS MyVote
             FROM Comment WHERE AssociatedPost = ${req.post.PostID} ORDER BY LikeCount DESC`);
@@ -310,12 +310,12 @@ router.post('/:groupname/:postId/comment', auth.isAuthenticated, async (req, res
     return;
   }
 
-  const comment = await req.db.run(SQL`INSERT INTO 
-        Comment(BodyText, CreatorUsername, AssociatedPost, LikeCount) 
+  const comment = await req.db.run(SQL`INSERT INTO
+        Comment(BodyText, CreatorUsername, AssociatedPost, LikeCount)
         VALUES(${req.body.body}, ${req.session.username}, ${req.post.PostID}, 1)`);
 
   // Automatically upvote their own comment
-  await req.db.run(SQL`INSERT INTO CommentVote (AssociatedComment, VoterUsername, Type) 
+  await req.db.run(SQL`INSERT INTO CommentVote (AssociatedComment, VoterUsername, Type)
                              VALUES (${comment.lastID}, ${req.session.username}, 1)`);
 
   res.redirect(`/group/${req.params.groupname}/${req.params.postId}`);
@@ -334,7 +334,7 @@ router.post('/:groupname/:postId/vote', auth.isAuthenticated, async (req, res) =
                                         VoterUsername = ${req.session.username}`);
 
   // Update the vote type or insert it if it doesn't exist
-  await req.db.run(SQL`INSERT OR REPLACE INTO PostVote (AssociatedPost, VoterUsername, Type) 
+  await req.db.run(SQL`INSERT OR REPLACE INTO PostVote (AssociatedPost, VoterUsername, Type)
                              VALUES (${req.params.postId}, ${req.session.username}, ${type})`);
 
   // Figure out what the new total like amount is
