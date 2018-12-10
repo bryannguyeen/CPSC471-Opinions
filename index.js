@@ -331,7 +331,7 @@ app.post('/compose', auth.isAuthenticated, async (req, res) => {
   const user = await db.get(SQL`SELECT * FROM User WHERE LOWER(Username) = LOWER(${recipient})`);
   if (user) {
     await db.run(`INSERT INTO Mail VALUES
-                    (NULL, ${subject}, ${message_body}, ${req.session.username}, ${user.Username})`);
+                    (NULL, '${subject}', '${message_body}', '${req.session.username}', '${user.Username}')`);
     return res.render('pages/generic', {
       username: req.session.username,
       messageH: 'Success!',
