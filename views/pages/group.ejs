@@ -15,8 +15,17 @@
         margin-top: 20px;
     }
 </style>
+<style>
+  .delete-group {
+    position: relative;
+    float:right;
+    margin-bottom: 20px;
+    background-color: #555555;
+    color: red;
+  }
+</style>
 <main>
-    <% if (locals.subscribed) { %>
+    <% if (locals.mod || locals.subscribed) { %>
         <form action="/group/<%= locals.groupinfo.GroupName %>/unsubscribe" method="POST" class="subscribe-form">
             <button>Unsubscribe</button>
         </form>
@@ -27,9 +36,12 @@
     <% } %>
 
 
+
     <form action="/group/<%= locals.groupinfo.GroupName %>/post" style="float: right; margin: 20px 20px 0 0;">
         <button>New Post</button>
     </form>
+
+
 
     <h1><%= locals.groupinfo.GroupName %></h1>
     <p><%= locals.groupinfo.Description %></p>
@@ -55,7 +67,14 @@
         <% if (Number(locals.page) < Number(locals.numPages)) { %>
             <a href="/group/<%= locals.groupinfo.GroupName %>/page/<%= nextPage %>">Next Page></a>
         <% } %>
+
+
     </div>
+    <% if(locals.mod) { %>
+      <form action="/group/<% locals.groupinfo.GroupName %>/deleteGroup" method="POST" class="delete-group">
+        <button>Delete Group</button>
+      </form>
+    <% } %>
 </main>
 
 </body>

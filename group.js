@@ -80,6 +80,9 @@ router.post('/create', auth.isAuthenticated, async (req, res) => {
   await req.db.run(SQL`INSERT INTO \`Group\` VALUES(${groupname}, ${description}, ${req.session.username})`);
   await req.db.run(SQL`INSERT OR IGNORE INTO Moderator VALUES(${req.session.username})`);
   await req.db.run(SQL`INSERT INTO Moderates VALUES(${req.session.username}, ${groupname})`);
+  // Creator automatically subscribed to group they created
+  await req.db.run(SQL`INSERT OR IGNORE INTO SubscribedTo VALUES(${req.session.username}, ${req.params.groupname})`);
+
 
   res.redirect('/group/' + groupname);
 });
