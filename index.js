@@ -56,15 +56,8 @@ app.get('/', auth.isAuthenticated, async (req, res) => {
 });
 
 app.get('/home/:pageNo', auth.isAuthenticated, async (req, res) => {
-  const hideNSFW = await req.db.get(SQL`SELECT HideNSFW FROM UserSettings WHERE Username = ${req.session.username}`);
-  var allowNSFW = 0;
-  if (!hideNSFW) {
-    allowNSFW = 1
-  }
-  else {
-    allowNSFW = (hideNSFW.HideNSFW + 1) % 2
-  }
-
+  const allowNSFW = !((await req.db.get(SQL`
+                          SELECT HideNSFW FROM UserSettings WHERE Username=${req.session.username}`)).HideNSFW);
   const offset = (Number(req.params.pageNo) - 1) * 10;
   const postCount = await req.db.get(SQL
             `SELECT COUNT(*) as count FROM Post WHERE
@@ -99,6 +92,24 @@ app.get('/home/:pageNo', auth.isAuthenticated, async (req, res) => {
                 ORDER BY PostDate DESC LIMIT 10 OFFSET ${offset}`);
 
   res.render('pages/index', { username: req.session.username, posts, page: req.params.pageNo, numPages});
+});
+
+app.get('/search', auth.isAuthenticated, async (req, res) => {
+  const allowNSFW = !((await req.db.get(SQL`
+                          SELECT HideNSFW FROM UserSettings WHERE Username=${req.session.username}`)).HideNSFW);
+  const term = req.query.term;
+
+  // Have to manually escape the term with LIKE :(
+  const posts = await req.db.all(SQL`
+            SELECT * FROM Post WHERE (IsNFSW = 0 OR IsNFSW = ${allowNSFW})
+                AND (Title LIKE '%`.append(term).append(SQL`%' OR
+                    Bodytext LIKE '%`.append(term).append(SQL`%' OR
+                    CreatorUsername LIKE '%`.append(term).append(SQL`%' OR
+                    CountryOfOrigin LIKE '%`.append(term).append(SQL`%' OR
+                    AssociatedGroup LIKE '%`.append(term).append(SQL`%')
+                ORDER BY Score DESC`))))));
+
+  res.render('pages/search', { username: req.session.username, posts});
 });
 
 app.get('/settings', auth.isAuthenticated, async (req, res, next) => {
