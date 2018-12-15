@@ -56,8 +56,9 @@ app.get('/', auth.isAuthenticated, async (req, res) => {
 });
 
 app.get('/home/:pageNo', auth.isAuthenticated, async (req, res) => {
-  const allowNSFW = !((await req.db.get(SQL`
-                          SELECT HideNSFW FROM UserSettings WHERE Username=${req.session.username}`)).HideNSFW);
+  const hideNSFW = await req.db.get(SQL`SELECT HideNSFW FROM UserSettings WHERE Username = ${req.session.username}`);
+  const allowNSFW = !hideNSFW || !hideNSFW.HideNSFW;
+
   const offset = (Number(req.params.pageNo) - 1) * 10;
   const postCount = await req.db.get(SQL
             `SELECT COUNT(*) as count FROM Post WHERE
@@ -95,8 +96,8 @@ app.get('/home/:pageNo', auth.isAuthenticated, async (req, res) => {
 });
 
 app.get('/search', auth.isAuthenticated, async (req, res) => {
-  const allowNSFW = !((await req.db.get(SQL`
-                          SELECT HideNSFW FROM UserSettings WHERE Username=${req.session.username}`)).HideNSFW);
+  const hideNSFW = await req.db.get(SQL`SELECT HideNSFW FROM UserSettings WHERE Username = ${req.session.username}`);
+  const allowNSFW = !hideNSFW || !hideNSFW.HideNSFW;
   const term = req.query.term;
 
   // Have to manually escape the term with LIKE :(
